@@ -54,7 +54,7 @@ const Logo: React.FC<React.PropsWithChildren<Props>> = ({ href }) => {
   const innerLogo = (
     <>
       <img src="/images/pixel/logo.gif" width="11%" alt="logo" />
-      <span class="logoText">PixelSwap</span>
+      <span className="logoText">PixelSwap</span>
     </>
   );
 
