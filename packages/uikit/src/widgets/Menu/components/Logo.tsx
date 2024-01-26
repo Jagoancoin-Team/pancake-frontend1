@@ -1,7 +1,6 @@
 import React, { useContext } from "react";
 import { styled, keyframes } from "styled-components";
 import Flex from "../../../components/Box/Flex";
-import { LogoIcon, LogoWithTextIcon } from "../../../components/Svg";
 import { MenuContext } from "../context";
 
 interface Props {
@@ -28,6 +27,14 @@ const StyledLink = styled("a")`
       display: block;
     }
   }
+  .logoText {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-self: flex-end;
+    text-align: center;
+    margin-left: 10px;
+  }
   .eye {
     animation-delay: 20ms;
   }
@@ -46,8 +53,8 @@ const Logo: React.FC<React.PropsWithChildren<Props>> = ({ href }) => {
   const isAbsoluteUrl = href.startsWith("http");
   const innerLogo = (
     <>
-      <LogoIcon className="mobile-icon" />
-      <LogoWithTextIcon className="desktop-icon" />
+      <img src="/images/pixel/logo.gif" width="11%" alt="logo" />
+      <span class="logoText">PixelSwap</span>
     </>
   );
 
