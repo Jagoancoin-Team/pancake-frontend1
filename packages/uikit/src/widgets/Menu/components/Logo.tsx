@@ -21,7 +21,6 @@ const StyledLink = styled("a")`
     }
   }
   .desktop-icon {
-    width: 160px;
     display: none;
     ${({ theme }) => theme.mediaQueries.lg} {
       display: block;
@@ -53,7 +52,8 @@ const Logo: React.FC<React.PropsWithChildren<Props>> = ({ href }) => {
   const isAbsoluteUrl = href.startsWith("http");
   const innerLogo = (
     <>
-      <img src="/images/pixel/logo.gif" width="11%" alt="logo" />
+      <img src="/images/pixel/logo.gif" className="desktop-icon" width="11%" alt="logo" />
+      <img src="/images/pixel/logo.gif" className="mobile-icon" width="11%" alt="logo" />
       <span className="logoText">PixelSwap</span>
     </>
   );
