@@ -51,17 +51,12 @@ export const useMultipleBannerConfig = () => {
 
     const SHUFFLE_BANNERS: IBannerConfig[] = [
       {
-        /*
-
-        {
-        shouldRender: isRenderCompetitionBanner,
+        shouldRender: false,
         banner: <CompetitionBanner />,
       },
       {
-      shouldRender: true,
-      banner: <PerpetualBanner />,
-    },
-*/
+        shouldRender: false,
+        banner: <PerpetualBanner />,
       },
     ]
     return [
