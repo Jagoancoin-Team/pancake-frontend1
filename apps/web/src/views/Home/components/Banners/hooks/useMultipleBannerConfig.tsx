@@ -42,21 +42,26 @@ export const useMultipleBannerConfig = () => {
         shouldRender: isRenderUserBanner.shouldRender && !isRenderUserBanner.isEarningsBusdZero,
         banner: <UserBanner />,
       },
-      { shouldRender: isRenderIFOBanner || Boolean(countdown), banner: <NewIFOBanner /> },
-      { shouldRender: true, banner: <GalxeTraverseBanner /> },
-      { shouldRender: true, banner: <WebNotificationBanner /> },
+      // { shouldRender: isRenderIFOBanner || Boolean(countdown), banner: <NewIFOBanner /> },
+      // { shouldRender: true, banner: <GalxeTraverseBanner /> },
+      // { shouldRender: true, banner: <WebNotificationBanner /> },
       { shouldRender: true, banner: <VeCakeBanner /> },
-      { shouldRender: true, banner: <GameBanner /> },
+      // { shouldRender: true, banner: <GameBanner /> },
     ]
 
     const SHUFFLE_BANNERS: IBannerConfig[] = [
       {
+        /*
+
+        {
         shouldRender: isRenderCompetitionBanner,
         banner: <CompetitionBanner />,
       },
       {
-        shouldRender: true,
-        banner: <PerpetualBanner />,
+      shouldRender: true,
+      banner: <PerpetualBanner />,
+    },
+*/
       },
     ]
     return [

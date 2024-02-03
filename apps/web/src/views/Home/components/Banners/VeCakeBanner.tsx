@@ -164,16 +164,16 @@ const VeCakeBanner = () => {
       <S.Inner>
         <S.LeftWrapper position="relative" style={{ zIndex: 3, justifyContent: isMobile ? 'flex-start' : 'center' }}>
           <Flex alignItems="center" mb="8px" style={{ gap: isMobile ? 8 : 10 }}>
-            <Image
+            {/* <Image
               src={vecakeTitle}
               alt="pancakeSwapLogo"
               width={isMobile ? 100 : 132}
               height={isMobile ? 15 : 22}
               unoptimized
-            />
+            /> */}
           </Flex>
-          <Header data-text={isMobile ? t('Introducing Gauges Voting and veCAKE') : t('Your CAKE, Your Voice')}>
-            {isMobile ? t('Introducing Gauges Voting and veCAKE') : t('Your CAKE, Your Voice')}
+          <Header data-text={isMobile ? t('Pixels are a go') : t('Pixels are a go')}>
+            {isMobile ? t('Pixels are a go') : t('Pixels are a go')}
           </Header>
           <Box>
             {isDesktop ? (
@@ -190,7 +190,7 @@ const VeCakeBanner = () => {
                   {t('and')}
                 </SubText>
                 <SubText color="#280D5F" mr="4px">
-                  {t('veCAKE')}
+                  {t('Pixels')}
                 </SubText>
               </Flex>
             ) : null}
@@ -247,7 +247,7 @@ const VeCakeBanner = () => {
           )}
         </S.LeftWrapper>
         <RightWrapper>
-          <Image src={vecakeRuby} alt="vecakeRuby" width={73.52} height={77.7} placeholder="blur" />
+          {/* <Image src={vecakeRuby} alt="vecakeRuby" width={73.52} height={77.7} placeholder="blur" />
           {isMobile ? (
             <Image src={vecakeMobileBunny} alt="vecakeMobileBunny" width={161} height={177.7} placeholder="blur" />
           ) : (
@@ -259,7 +259,7 @@ const VeCakeBanner = () => {
             ) : (
               <Image src={vecakeBg} alt="vecakeBg" width={1126} height={192} placeholder="blur" />
             )}
-          </BgWrapper>
+          </BgWrapper> */}
         </RightWrapper>
       </S.Inner>
     </S.Wrapper>
