@@ -1,7 +1,7 @@
 import { Currency, CurrencyAmount } from '@pancakeswap/swap-sdk-core'
 import { Balance, Text } from '@pancakeswap/uikit'
 
-import { useStablecoinPriceAmount } from 'hooks/useBUSDPrice'
+import { useStablecoinPriceAmount } from 'hooks/useStablecoinPrice'
 import toNumber from 'lodash/toNumber'
 import React from 'react'
 
@@ -23,12 +23,7 @@ export function AmountWithUSDSub({
     undefined,
     <>
       <Text fontSize={fontSize} bold mb={mb}>
-        <Balance
-          fontSize="16px"
-          value={toNumber(amount.toSignificant(6))}
-          decimals={0}
-          unit={` ${amount.currency.wrapped.symbol}`}
-        />
+        {amount.toSignificant(6)} {amount.currency.symbol}
       </Text>
       <Balance
         unit=" USD"

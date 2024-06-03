@@ -1,27 +1,30 @@
 import { Currency, CurrencyAmount, TradeType } from '@pancakeswap/sdk'
-import { SmartRouterTrade } from '@pancakeswap/smart-router/evm'
+import { SmartRouterTrade } from '@pancakeswap/smart-router'
 import { ConfirmationModalContent } from '@pancakeswap/widgets-internal'
 import { memo, useCallback, useMemo } from 'react'
 import { Field } from 'state/swap/actions'
 import { maxAmountSpend } from 'utils/maxAmountSpend'
+import { MMSlippageTolerance } from 'views/Swap/MMLinkPools/components/MMSlippageTolerance'
 import {
   computeSlippageAdjustedAmounts as mmComputeSlippageAdjustedAmountsWithSmartRouter,
   computeTradePriceBreakdown as mmComputeTradePriceBreakdownWithSmartRouter,
 } from 'views/Swap/MMLinkPools/utils/exchange'
-import { MMSlippageTolerance } from 'views/Swap/MMLinkPools/components/MMSlippageTolerance'
-import { SwapModalFooter } from './SwapModalFooter'
+import SwapModalHeader from '../../components/SwapModalHeader'
 import {
+  TradeEssentialForPriceBreakdown,
   computeSlippageAdjustedAmounts as computeSlippageAdjustedAmountsWithSmartRouter,
   computeTradePriceBreakdown as computeTradePriceBreakdownWithSmartRouter,
 } from '../utils/exchange'
-import SwapModalHeader from '../../components/SwapModalHeader'
+import { SwapModalFooter } from './SwapModalFooter'
+
+type Trade = TradeEssentialForPriceBreakdown & Pick<SmartRouterTrade<TradeType>, 'tradeType'>
 
 /**
  * Returns true if the trade requires a confirmation of details before we can submit it
  * @param tradeA trade A
  * @param tradeB trade B
  */
-function tradeMeaningfullyDiffers(tradeA: SmartRouterTrade<TradeType>, tradeB: SmartRouterTrade<TradeType>): boolean {
+function tradeMeaningfullyDiffers(tradeA: Trade, tradeB: Trade): boolean {
   return (
     tradeA.tradeType !== tradeB.tradeType ||
     !tradeA.inputAmount.currency.equals(tradeB.inputAmount.currency) ||
@@ -34,13 +37,13 @@ function tradeMeaningfullyDiffers(tradeA: SmartRouterTrade<TradeType>, tradeB: S
 interface TransactionConfirmSwapContentProps {
   isMM?: boolean
   isRFQReady?: boolean
-  trade: SmartRouterTrade<TradeType> | undefined
-  originalTrade: SmartRouterTrade<TradeType> | undefined
+  trade: Trade | undefined | null
+  originalTrade: Trade | undefined | null
   onAcceptChanges: () => void
   allowedSlippage: number
   onConfirm: () => void
   recipient?: string | null
-  currencyBalances: {
+  currencyBalances?: {
     INPUT?: CurrencyAmount<Currency>
     OUTPUT?: CurrencyAmount<Currency>
   }
@@ -101,7 +104,7 @@ export const TransactionConfirmSwapContent = memo<TransactionConfirmSwapContentP
           tradeType={trade.tradeType}
           priceImpactWithoutFee={priceImpactWithoutFee ?? undefined}
           allowedSlippage={isMM ? <MMSlippageTolerance /> : allowedSlippage}
-          slippageAdjustedAmounts={slippageAdjustedAmounts}
+          slippageAdjustedAmounts={slippageAdjustedAmounts ?? undefined}
           isEnoughInputBalance={isEnoughInputBalance ?? undefined}
           recipient={recipient ?? undefined}
           showAcceptChanges={showAcceptChanges}
@@ -134,7 +137,7 @@ export const TransactionConfirmSwapContent = memo<TransactionConfirmSwapContentP
           lpFee={lpFeeAmount ?? undefined}
           priceImpact={priceImpactWithoutFee ?? undefined}
           disabledConfirm={showAcceptChanges}
-          slippageAdjustedAmounts={slippageAdjustedAmounts}
+          slippageAdjustedAmounts={slippageAdjustedAmounts ?? undefined}
           isEnoughInputBalance={isEnoughInputBalance ?? undefined}
           onConfirm={onConfirm}
         />

@@ -1,10 +1,10 @@
-import { styled, keyframes } from 'styled-components'
-import { Box, Flex, Heading, Skeleton, Balance } from '@pancakeswap/uikit'
-import { LotteryStatus } from 'config/constants/types'
 import { useTranslation } from '@pancakeswap/localization'
+import { Balance, Box, Flex, Heading, Skeleton } from '@pancakeswap/uikit'
+import { getBalanceNumber } from '@pancakeswap/utils/formatBalance'
+import { LotteryStatus } from 'config/constants/types'
 import { useCakePrice } from 'hooks/useCakePrice'
 import { useLottery } from 'state/lottery/hooks'
-import { getBalanceNumber } from '@pancakeswap/utils/formatBalance'
+import { keyframes, styled } from 'styled-components'
 import { TicketPurchaseCard } from '../svgs'
 import BuyTicketsButton from './BuyTicketsButton'
 
@@ -232,7 +232,7 @@ const Hero = () => {
             <PrizeTotalBalance fontSize="64px" bold prefix="$" value={prizeTotal} mb="8px" decimals={0} />
           )}
           <Heading mb="32px" scale="lg" color="#ffffff">
-            {t('in prizes!')}
+            {t('in Prizes!')}
           </Heading>
         </>
       )

@@ -1,6 +1,6 @@
 import { ChainId } from '@pancakeswap/chains'
 import { FeeAmount } from '@pancakeswap/v3-sdk'
-import type { Address } from 'viem'
+import type { Address, Hash } from 'viem'
 
 export enum GaugeType {
   // @note: this is a hack
@@ -18,7 +18,7 @@ export const GAUGE_TYPE_NAMES: Record<GaugeType, string> = {
   [GaugeType.StableSwap]: 'StableSwap',
   [GaugeType.V2]: 'V2',
   [GaugeType.V3]: 'V3',
-  [GaugeType.ALM]: 'ALM',
+  [GaugeType.ALM]: 'Position Manager',
   [GaugeType.VeCakePool]: 'VeCakePool',
   [GaugeType.Aptos]: 'Aptos',
 }
@@ -28,6 +28,7 @@ export interface GaugeBaseConfig {
   chainId: ChainId
   type: GaugeType
   address: Address
+  killed?: boolean
 }
 
 export interface GaugeV2Config extends GaugeBaseConfig {
@@ -56,6 +57,8 @@ export interface GaugeALMConfig extends GaugeBaseConfig {
   token0Address: Address
   token1Address: Address
   pairName: string
+  // @note: only used when ALM wrapper is not configured in position-managers
+  managerName?: string
 }
 
 export interface GaugeVeCakePoolConfig extends GaugeBaseConfig {
@@ -66,13 +69,14 @@ export interface GaugeVeCakePoolConfig extends GaugeBaseConfig {
 export type GaugeConfig = GaugeV2Config | GaugeStableSwapConfig | GaugeV3Config | GaugeALMConfig | GaugeVeCakePoolConfig
 
 export type GaugeInfo = {
-  hash: string
+  hash: Hash
   pairAddress: Address
   masterChef: Address
   pid: number
   chainId: number
   boostMultiplier: number
   maxVoteCap: number
+  killed?: boolean
 }
 
 export type GaugeInfoConfig = GaugeInfo & GaugeConfig

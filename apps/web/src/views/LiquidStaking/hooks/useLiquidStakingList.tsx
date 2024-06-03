@@ -1,6 +1,6 @@
+import { useQuery } from '@tanstack/react-query'
 import { useActiveChainId } from 'hooks/useActiveChainId'
 import { LiquidStakingList } from 'views/LiquidStaking/constants/types'
-import { useQuery } from '@tanstack/react-query'
 
 interface UseLiquidStakingList {
   data: LiquidStakingList[]
@@ -14,24 +14,26 @@ export const fetchLiquidStaking = async (chainId: number) => {
 export const useLiquidStakingList = (): UseLiquidStakingList => {
   const { chainId } = useActiveChainId()
 
-  const { data, isLoading } = useQuery(
-    ['liquidStaking', 'liquidStaking-list', chainId],
-    async () => {
+  const { data, isPending } = useQuery({
+    queryKey: ['liquidStaking', 'liquidStaking-list', chainId],
+
+    queryFn: async () => {
       try {
-        return fetchLiquidStaking(chainId)
+        return fetchLiquidStaking(chainId!)
       } catch (error) {
         console.error('Cannot get liquid staking list', error, chainId)
         return []
       }
     },
-    {
-      refetchOnReconnect: false,
-      refetchOnWindowFocus: false,
-    },
-  )
+
+    enabled: Boolean(chainId),
+
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
+  })
 
   return {
     data,
-    isFetching: isLoading,
+    isFetching: isPending,
   }
 }

@@ -1,25 +1,27 @@
+import { UsdvWidget } from '@pancakeswap/widgets-internal'
+import { useDebounce, useSortedTokensByQuery } from '@pancakeswap/hooks'
+import { useTranslation } from '@pancakeswap/localization'
 /* eslint-disable no-restricted-syntax */
 import { Currency, Token } from '@pancakeswap/sdk'
-import { Box, Input, Text, useMatchBreakpoints, AutoColumn, Column } from '@pancakeswap/uikit'
-import { KeyboardEvent, RefObject, useCallback, useMemo, useRef, useState, useEffect } from 'react'
-import { useTranslation } from '@pancakeswap/localization'
-import { useDebounce, useSortedTokensByQuery } from '@pancakeswap/hooks'
-import useNativeCurrency from 'hooks/useNativeCurrency'
-import { FixedSizeList } from 'react-window'
-import { useAllLists, useInactiveListUrls } from 'state/lists/hooks'
 import { WrappedTokenInfo, createFilterToken } from '@pancakeswap/token-lists'
+import { AutoColumn, Box, Column, Input, Text, useMatchBreakpoints } from '@pancakeswap/uikit'
 import { useAudioPlay } from '@pancakeswap/utils/user'
-import { safeGetAddress } from 'utils'
-import { useActiveChainId } from 'hooks/useActiveChainId'
-import { whiteListedFiatCurrenciesMap } from 'views/BuyCrypto/constants'
+import { KeyboardEvent, RefObject, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { FixedSizeList } from 'react-window'
 import { isAddress } from 'viem'
+
+import { safeGetAddress } from 'utils'
+import { useAllLists, useInactiveListUrls } from 'state/lists/hooks'
+import { useActiveChainId } from 'hooks/useActiveChainId'
+import useNativeCurrency from 'hooks/useNativeCurrency'
+import { useUsdvMintAvailable } from 'hooks/useUsdvMintAvailable'
+
 import { useAllTokens, useIsUserAddedToken, useToken } from '../../hooks/Tokens'
 import Row from '../Layout/Row'
 import CommonBases from './CommonBases'
 import CurrencyList from './CurrencyList'
 import useTokenComparator from './sorting'
 import { getSwapSound } from './swapSound'
-
 import ImportRow from './ImportRow'
 
 interface CurrencySearchProps {
@@ -33,8 +35,6 @@ interface CurrencySearchProps {
   setImportToken: (token: Token) => void
   height?: number
   tokensToShow?: Token[]
-  mode?: string
-  onRampFlow?: boolean
 }
 
 function useSearchInactiveTokenLists(search: string | undefined, minResults = 10): WrappedTokenInfo[] {
@@ -91,8 +91,6 @@ function CurrencySearch({
   setImportToken,
   height,
   tokensToShow,
-  mode,
-  onRampFlow,
 }: CurrencySearchProps) {
   const { t } = useTranslation()
   const { chainId } = useActiveChainId()
@@ -102,6 +100,10 @@ function CurrencySearch({
 
   const [searchQuery, setSearchQuery] = useState<string>('')
   const debouncedQuery = useDebounce(searchQuery, 200)
+  const usdvMintAvailable = useUsdvMintAvailable({
+    chainId,
+    tokenSymbol: debouncedQuery,
+  })
 
   const [invertSearchOrder] = useState<boolean>(false)
 
@@ -117,29 +119,23 @@ function CurrencySearch({
   const native = useNativeCurrency()
 
   const showNative: boolean = useMemo(() => {
-    if (tokensToShow || mode === 'onramp-input') return false
+    if (tokensToShow) return false
     const s = debouncedQuery.toLowerCase().trim()
     return native && native.symbol?.toLowerCase?.()?.indexOf(s) !== -1
-  }, [debouncedQuery, native, tokensToShow, mode])
+  }, [debouncedQuery, native, tokensToShow])
 
   const filteredTokens: Token[] = useMemo(() => {
     const filterToken = createFilterToken(debouncedQuery, (address) => isAddress(address))
     return Object.values(tokensToShow || allTokens).filter(filterToken)
   }, [tokensToShow, allTokens, debouncedQuery])
 
-  const queryTokens = useSortedTokensByQuery(filteredTokens, debouncedQuery)
-  const filteredQueryTokens = useMemo(() => {
-    if (!chainId) return queryTokens
-    return mode === 'onramp-input'
-      ? queryTokens.filter((curr) => whiteListedFiatCurrenciesMap[chainId].includes(curr.symbol))
-      : queryTokens
-  }, [mode, queryTokens, chainId])
-
+  const filteredQueryTokens = useSortedTokensByQuery(filteredTokens, debouncedQuery)
   const tokenComparator = useTokenComparator(invertSearchOrder)
 
-  const filteredSortedTokens: Token[] = useMemo(() => {
-    return onRampFlow ? [...filteredQueryTokens] : [...filteredQueryTokens].sort(tokenComparator)
-  }, [filteredQueryTokens, tokenComparator, onRampFlow])
+  const filteredSortedTokens: Token[] = useMemo(
+    () => [...filteredQueryTokens].sort(tokenComparator),
+    [filteredQueryTokens, tokenComparator],
+  )
 
   const handleCurrencySelect = useCallback(
     (currency: Currency) => {
@@ -203,13 +199,13 @@ function CurrencySearch({
       )
     }
 
-    return Boolean(filteredSortedTokens?.length) || hasFilteredInactiveTokens || mode === 'onramp-output' ? (
+    return Boolean(filteredSortedTokens?.length) || hasFilteredInactiveTokens ? (
       <Box mx="-24px" my="24px">
         <CurrencyList
           height={isMobile ? (showCommonBases ? height || 250 : height ? height + 80 : 350) : 390}
           showNative={showNative}
           currencies={filteredSortedTokens}
-          inactiveCurrencies={mode === 'onramp-input' ? [] : filteredInactiveTokens}
+          inactiveCurrencies={filteredInactiveTokens}
           breakIndex={
             Boolean(filteredInactiveTokens?.length) && filteredSortedTokens ? filteredSortedTokens.length : undefined
           }
@@ -219,7 +215,6 @@ function CurrencySearch({
           fixedListRef={fixedList}
           showImportView={showImportView}
           setImportToken={setImportToken}
-          mode={mode as string}
         />
       </Box>
     ) : (
@@ -245,7 +240,6 @@ function CurrencySearch({
     showCommonBases,
     isMobile,
     height,
-    mode,
   ])
 
   return (
@@ -255,7 +249,7 @@ function CurrencySearch({
           <Row>
             <Input
               id="token-search-input"
-              placeholder={t(onRampFlow ? 'Search name' : 'Search name or paste address')}
+              placeholder={t('Search name or paste address')}
               scale="lg"
               autoComplete="off"
               value={searchQuery}
@@ -273,6 +267,7 @@ function CurrencySearch({
             commonBasesType={commonBasesType}
           />
         )}
+        {usdvMintAvailable ? <UsdvWidget.MintLink mt="0.625rem" /> : null}
       </AutoColumn>
       {getCurrencyListRows()}
     </>

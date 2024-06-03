@@ -1,4 +1,5 @@
 import { useTranslation } from '@pancakeswap/localization'
+import { MANAGER } from '@pancakeswap/position-managers'
 import { Currency, CurrencyAmount } from '@pancakeswap/sdk'
 import type { AtomBoxProps } from '@pancakeswap/uikit'
 import { Box, Button, Flex, ModalV2, RowBetween, Text, useToast } from '@pancakeswap/uikit'
@@ -9,10 +10,10 @@ import { ConfirmationPendingContent, CurrencyLogo } from '@pancakeswap/widgets-i
 import BigNumber from 'bignumber.js'
 import { ToastDescriptionWithTx } from 'components/Toast'
 import useCatchTxError from 'hooks/useCatchTxError'
-import { usePositionManagerWrapperContract } from 'hooks/useContract'
+import { usePositionManagerBCakeWrapperContract, usePositionManagerWrapperContract } from 'hooks/useContract'
 import { memo, useCallback, useMemo, useState } from 'react'
 import { SpaceProps } from 'styled-system'
-import { Address } from 'viem'
+import { Address, encodePacked } from 'viem'
 
 import { InnerCard } from './InnerCard'
 import { PercentSlider } from './PercentSlider'
@@ -22,6 +23,10 @@ import { FeeTag } from './Tags'
 interface Props {
   isOpen?: boolean
   onDismiss?: () => void
+  manager: {
+    id: MANAGER
+    name: string
+  }
   vaultName: string
   feeTier: FeeAmount
   currencyA: Currency
@@ -37,6 +42,7 @@ interface Props {
     amountB: CurrencyAmount<Currency>
     liquidity: bigint
   }) => Promise<void>
+  bCakeWrapper?: Address
 }
 
 export const RemoveLiquidity = memo(function RemoveLiquidity({
@@ -52,11 +58,14 @@ export const RemoveLiquidity = memo(function RemoveLiquidity({
   feeTier,
   contractAddress,
   refetch,
+  bCakeWrapper,
+  manager,
 }: Props) {
   const { t } = useTranslation()
   const { account, chain } = useWeb3React()
   const [percent, setPercent] = useState(0)
   const tokenPairName = useMemo(() => `${currencyA.symbol}-${currencyB.symbol}`, [currencyA, currencyB])
+  const bCakeWrapperContract = usePositionManagerBCakeWrapperContract(bCakeWrapper ?? '0x')
   const wrapperContract = usePositionManagerWrapperContract(contractAddress)
   const { fetchWithCatchTxError, loading: pendingTx } = useCatchTxError()
   const { toastSuccess } = useToast()
@@ -65,17 +74,46 @@ export const RemoveLiquidity = memo(function RemoveLiquidity({
   const amountB = useMemo(() => staked1Amount?.multiply(percent)?.divide(100), [staked1Amount, percent])
 
   const withdrawThenBurn = useCallback(async () => {
-    const userInfoAmount = await wrapperContract.read.userInfo([account ?? '0x'], {})
+    const receipt = await fetchWithCatchTxError(
+      bCakeWrapper
+        ? async () => {
+            const bCakeUserInfoAmount = await bCakeWrapperContract.read.userInfo([account ?? '0x'], {})
+            const slippage = '0x00000000000000000000000000000000000000000000000000b1a2bc2ec50000' // 5
+            const message =
+              manager.id === MANAGER.TEAHOUSE ? slippage : encodePacked(['uint256', 'uint256'], [BigInt(0), BigInt(0)])
+            const withdrawAmount = new BigNumber(bCakeUserInfoAmount?.[0]?.toString() ?? 0)
+              .multipliedBy(percent)
+              .div(100)
+              .toNumber()
+            const avoidDecimalsProblem =
+              percent === 100 ? BigInt(bCakeUserInfoAmount?.[0]) : BigInt(Math.floor(withdrawAmount))
+            const estGas = await bCakeWrapperContract.estimateGas.withdrawThenBurn(
+              [avoidDecimalsProblem, false, message],
+              {
+                account: account ?? '0x',
+              },
+            )
+            return bCakeWrapperContract.write.withdrawThenBurn([avoidDecimalsProblem, false, message], {
+              account: account ?? '0x',
+              chain,
+              gas: BigInt(new BigNumber(estGas.toString()).times(1.5).toNumber().toFixed(0)),
+            })
+          }
+        : async () => {
+            const userInfoAmount = await wrapperContract.read.userInfo([account ?? '0x'], {})
+            const withdrawAmount = new BigNumber(userInfoAmount?.[0]?.toString() ?? 0)
+              .multipliedBy(percent)
+              .div(100)
+              .toNumber()
 
-    const receipt = await fetchWithCatchTxError(() => {
-      const withdrawAmount = new BigNumber(userInfoAmount?.[0]?.toString() ?? 0)
-        .multipliedBy(percent)
-        .div(100)
-        .toNumber()
-
-      const avoidDecimalsProblem = percent === 100 ? BigInt(userInfoAmount?.[0]) : BigInt(Math.floor(withdrawAmount))
-      return wrapperContract.write.withdrawThenBurn([avoidDecimalsProblem, '0x'], { account: account ?? '0x', chain })
-    })
+            const avoidDecimalsProblem =
+              percent === 100 ? BigInt(userInfoAmount?.[0]) : BigInt(Math.floor(withdrawAmount))
+            return wrapperContract.write.withdrawThenBurn([avoidDecimalsProblem, '0x'], {
+              account: account ?? '0x',
+              chain,
+            })
+          },
+    )
 
     if (receipt?.status) {
       refetch?.()
@@ -87,7 +125,23 @@ export const RemoveLiquidity = memo(function RemoveLiquidity({
         </ToastDescriptionWithTx>,
       )
     }
-  }, [chain, wrapperContract, percent, account, fetchWithCatchTxError, refetch, onDismiss, toastSuccess, t])
+  }, [
+    fetchWithCatchTxError,
+    bCakeWrapper,
+    bCakeWrapperContract.read,
+    bCakeWrapperContract.estimateGas,
+    bCakeWrapperContract.write,
+    account,
+    manager.id,
+    percent,
+    chain,
+    wrapperContract.read,
+    wrapperContract.write,
+    refetch,
+    onDismiss,
+    toastSuccess,
+    t,
+  ])
 
   return (
     <ModalV2 onDismiss={onDismiss} isOpen={isOpen}>

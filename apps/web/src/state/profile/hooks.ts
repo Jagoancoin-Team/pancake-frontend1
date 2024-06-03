@@ -1,10 +1,10 @@
-import { useAccount } from 'wagmi'
-import { getAchievements } from 'state/achievements/helpers'
 import { useTranslation } from '@pancakeswap/localization'
-import { FetchStatus } from 'config/constants/types'
 import { QueryObserverResult, useQuery } from '@tanstack/react-query'
-import { getProfile, GetProfileResponse } from './helpers'
+import { FetchStatus } from 'config/constants/types'
+import { getAchievements } from 'state/achievements/helpers'
+import { useAccount } from 'wagmi'
 import { Profile } from '../types'
+import { GetProfileResponse, getProfile } from './helpers'
 
 export const useProfileForAddress = (
   address: string,
@@ -18,9 +18,11 @@ export const useProfileForAddress = (
   isLoading: boolean
   isFetching: boolean
   isValidating: boolean
-  refresh: () => Promise<QueryObserverResult<GetProfileResponse>>
+  refresh: () => Promise<QueryObserverResult<GetProfileResponse | null>>
 } => {
-  const { data, status, refetch, isFetching } = useQuery([address, 'profile'], () => getProfile(address), {
+  const { data, status, refetch, isFetching } = useQuery({
+    queryKey: [address, 'profile'],
+    queryFn: () => getProfile(address),
     enabled: Boolean(address),
     refetchOnMount: fetchConfiguration.revalidateIfStale,
     refetchOnWindowFocus: fetchConfiguration.revalidateOnFocus,
@@ -41,7 +43,9 @@ export const useProfileForAddress = (
 export const useAchievementsForAddress = (address: string) => {
   const { t } = useTranslation()
 
-  const { data, status, refetch } = useQuery([address, 'achievements'], () => getAchievements(address, t), {
+  const { data, status, refetch } = useQuery({
+    queryKey: [address, 'achievements'],
+    queryFn: () => getAchievements(address, t),
     enabled: Boolean(address),
     refetchOnMount: false,
     refetchOnReconnect: false,
@@ -50,7 +54,7 @@ export const useAchievementsForAddress = (address: string) => {
 
   return {
     achievements: data || [],
-    isFetching: status === 'loading',
+    isFetching: status === 'pending',
     refresh: refetch,
   }
 }
@@ -61,26 +65,27 @@ export const useProfile = (): {
   hasActiveProfile: boolean
   isInitialized: boolean
   isLoading: boolean
-  refresh: () => Promise<QueryObserverResult<GetProfileResponse | undefined>>
+  refresh: () => Promise<QueryObserverResult<GetProfileResponse | undefined | null>>
 } => {
   const { address: account } = useAccount()
-  const { data, status, refetch } = useQuery(
-    [account, 'profile'],
-    () => {
+  const enabled = Boolean(account)
+  const { data, status, refetch } = useQuery({
+    queryKey: [account, 'profile'],
+
+    queryFn: () => {
       if (!account) return undefined
       return getProfile(account)
     },
-    {
-      enabled: Boolean(account),
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      refetchOnWindowFocus: false,
-    },
-  )
+
+    enabled,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
+  })
 
   const { profile, hasRegistered } = data ?? ({ profile: undefined, hasRegistered: false } as GetProfileResponse)
 
-  const isLoading = status === FetchStatus.Fetching
+  const isLoading = enabled && status === FetchStatus.Fetching
   const isInitialized = status === FetchStatus.Fetched || status === FetchStatus.Failed
   const hasProfile = isInitialized && hasRegistered
   const hasActiveProfile = hasProfile && profile ? profile.isActive : false

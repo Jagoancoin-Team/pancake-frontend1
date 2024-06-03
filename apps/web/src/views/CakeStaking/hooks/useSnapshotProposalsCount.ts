@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import { SNAPSHOT_API } from 'config/constants/endpoints'
 import request, { gql } from 'graphql-request'
 
@@ -19,16 +19,10 @@ const getSnapshotCount = async (space: string) => {
 const SPACE_ID = 'cakevote.eth'
 
 export const useSnapshotProposalsCount = (): number | undefined => {
-  const { data } = useQuery(
-    ['snapshotVotingCount', SPACE_ID],
-    async () => {
-      const count = await getSnapshotCount(SPACE_ID)
-      return count
-    },
-    {
-      keepPreviousData: true,
-    },
-  )
-
+  const { data } = useQuery({
+    queryKey: ['snapshotVotingCount', SPACE_ID],
+    queryFn: async () => getSnapshotCount(SPACE_ID),
+    placeholderData: keepPreviousData,
+  })
   return data
 }

@@ -1,20 +1,10 @@
 import { useTranslation } from '@pancakeswap/localization'
-import {
-  ArrowBackIcon,
-  AutoColumn,
-  Box,
-  CircleLoader,
-  CloseIcon,
-  FlexGap,
-  IconButton,
-  Text,
-  useToast,
-} from '@pancakeswap/uikit'
+import { ArrowBackIcon, AutoColumn, Box, CircleLoader, FlexGap, IconButton, Text, useToast } from '@pancakeswap/uikit'
 import { CommitButton } from 'components/CommitButton'
 import _isEqual from 'lodash/isEqual'
 
 import { NotifyClientTypes } from '@walletconnect/notify-client'
-import { useManageSubscription, useSubscriptionScopes } from '@web3inbox/widget-react'
+import { useNotificationTypes, useUnsubscribe } from '@web3inbox/react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { NotificationHeader } from '../components/NotificationHeader/NotificationHeader'
 import SettingsContainer from '../components/SettingsItem/SettingsItem'
@@ -49,21 +39,18 @@ function NotificationActionButton({ isUnsubscribing, handleSubscriptionAction, o
 
 const NotificationSettingsView = ({
   toggleSettings,
-  onDismiss,
-  account,
 }: {
   toggleSettings: (e: React.MouseEvent<HTMLButtonElement>) => void
-  onDismiss: () => void
-  toggleOnboardView: () => void
-  account: string
 }) => {
-  const { unsubscribe, isUnsubscribing } = useManageSubscription(account)
-  const { scopes: currentScopes, updateScopes } = useSubscriptionScopes(account)
+  const { unsubscribe, isLoading: isUnsubscribing } = useUnsubscribe()
+  const { data: currentScopes, update: updateScopes } = useNotificationTypes()
   const [scopes, setScopes] = useState<NotifyClientTypes.ScopeMap>({})
+
   const prevScopesRef = useRef<NotifyClientTypes.ScopeMap>(currentScopes)
+  const objectsAreEqual = _isEqual(scopes, prevScopesRef.current)
+
   const toast = useToast()
   const { t } = useTranslation()
-  const objectsAreEqual = _isEqual(scopes, prevScopesRef.current)
 
   const getEnabledScopes = (scopesMap: NotifyClientTypes.ScopeMap) => {
     const enabledScopeKeys: string[] = []
@@ -75,6 +62,7 @@ const NotificationSettingsView = ({
   useEffect(() => {
     if (!currentScopes) return
     setScopes(currentScopes)
+    // @ts-ignore
     prevScopesRef.current = currentScopes
   }, [currentScopes])
 
@@ -82,23 +70,24 @@ const NotificationSettingsView = ({
     try {
       await updateScopes(getEnabledScopes(scopes))
       const newScope = currentScopes
+      // @ts-ignore
       prevScopesRef.current = newScope
-      toast.toastSuccess(Events.PreferencesUpdated.title, Events.PreferencesUpdated.message?.())
+      toast.toastSuccess(Events.PreferencesUpdated.title(t), Events.PreferencesUpdated.message?.(t))
     } catch (error) {
       const errMessage = parseErrorMessage(Events.PreferencesError, error)
-      toast.toastError(Events.PreferencesError.title, errMessage)
+      toast.toastError(Events.PreferencesError.title(t), errMessage)
     }
-  }, [currentScopes, toast, scopes, updateScopes])
+  }, [t, currentScopes, toast, scopes, updateScopes])
 
   const handleUnSubscribe = useCallback(async () => {
     try {
       await unsubscribe()
-      toast.toastSuccess(Events.Unsubscribed.title, Events.Unsubscribed.message?.())
+      toast.toastSuccess(Events.Unsubscribed.title(t), Events.Unsubscribed.message?.(t))
     } catch (error) {
       const errMessage = parseErrorMessage(Events.UnsubscribeError, error)
-      toast.toastWarning(Events.UnsubscribeError.title, errMessage)
+      toast.toastWarning(Events.UnsubscribeError.title(t), errMessage)
     }
-  }, [unsubscribe, toast])
+  }, [t, unsubscribe, toast])
 
   const handleAction = useCallback(
     (e: React.MouseEvent<HTMLDivElement | HTMLButtonElement>) => {
@@ -117,14 +106,10 @@ const NotificationSettingsView = ({
             <ArrowBackIcon color="primary" />
           </IconButton>
         }
-        rightIcon={
-          <IconButton tabIndex={-1} variant="text" onClick={onDismiss}>
-            <CloseIcon color="primary" />
-          </IconButton>
-        }
+        rightIcon={<IconButton tabIndex={-1} variant="text" />}
         text={t('Settings')}
       />
-      <ScrollableContainer>
+      <ScrollableContainer marginTop="10px">
         <SettingsContainer scopes={scopes} setScopes={setScopes} />
         <Box padding="20px">
           <NotificationActionButton

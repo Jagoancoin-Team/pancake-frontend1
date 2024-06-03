@@ -1,10 +1,10 @@
-import { useMemo } from 'react'
-import { v3Clients } from 'utils/graphql'
-import { useActiveChainId } from 'hooks/useActiveChainId'
 import { ChainId } from '@pancakeswap/chains'
-import { gql } from 'graphql-request'
 import { TickMath } from '@pancakeswap/v3-sdk'
 import { useQuery } from '@tanstack/react-query'
+import { gql } from 'graphql-request'
+import { useActiveChainId } from 'hooks/useActiveChainId'
+import { useMemo } from 'react'
+import { v3Clients } from 'utils/graphql'
 
 export type AllV3TicksQuery = {
   ticks: Array<{
@@ -17,22 +17,20 @@ export type AllV3TicksQuery = {
 export type Ticks = AllV3TicksQuery['ticks']
 export type TickData = Ticks[number]
 
-export default function useAllV3TicksQuery(poolAddress: string | undefined, interval: number) {
+export default function useAllV3TicksQuery(poolAddress: string | undefined, interval: number, enabled = true) {
   const { chainId } = useActiveChainId()
-  const { data, isLoading, error } = useQuery(
-    [`useAllV3TicksQuery-${poolAddress}-${chainId}`],
-    async () => {
+  const { data, isLoading, error } = useQuery({
+    queryKey: [`useAllV3TicksQuery-${poolAddress}-${chainId}`],
+    queryFn: async () => {
       if (!chainId || !poolAddress) return undefined
       return getPoolTicks(chainId, poolAddress)
     },
-    {
-      enabled: Boolean(poolAddress && chainId && v3Clients[chainId]),
-      refetchInterval: interval,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      refetchOnWindowFocus: false,
-    },
-  )
+    enabled: Boolean(poolAddress && chainId && v3Clients[chainId] && enabled),
+    refetchInterval: interval,
+    refetchOnMount: false,
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
+  })
 
   return useMemo(
     () => ({

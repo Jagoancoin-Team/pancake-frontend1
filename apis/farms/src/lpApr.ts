@@ -1,10 +1,10 @@
 /* eslint-disable no-restricted-syntax */
-import { ChainId } from '@pancakeswap/chains'
-import chunk from 'lodash/chunk'
+import { ChainId, getBlocksSubgraphs, getV2Subgraphs } from '@pancakeswap/chains'
+import { AprMap, FarmSupportedChainId } from '@pancakeswap/farms'
 import BigNumber from 'bignumber.js'
-import { gql, GraphQLClient } from 'graphql-request'
 import dayjs from 'dayjs'
-import { AprMap } from '@pancakeswap/farms'
+import { GraphQLClient, gql } from 'graphql-request'
+import chunk from 'lodash/chunk'
 import _toLower from 'lodash/toLower'
 
 interface BlockResponse {
@@ -18,35 +18,21 @@ const STABLESWAP_SUBGRAPH_ENDPOINT = 'https://api.thegraph.com/subgraphs/name/pa
 const LP_HOLDERS_FEE = 0.0017
 const WEEKS_IN_A_YEAR = 52.1429
 
-const BLOCKS_CLIENT_WITH_CHAIN = {
-  [ChainId.BSC]: 'https://api.thegraph.com/subgraphs/name/pancakeswap/blocks',
-  [ChainId.ETHEREUM]: 'https://api.thegraph.com/subgraphs/name/blocklytics/ethereum-blocks',
-  [ChainId.BSC_TESTNET]: '',
-  [ChainId.GOERLI]: '',
-  [ChainId.POLYGON_ZKEVM]: 'https://api.studio.thegraph.com/query/45376/polygon-zkevm-block/version/latest',
-  [ChainId.ZKSYNC]: 'https://api.studio.thegraph.com/query/45376/blocks-zksync/version/latest',
-  [ChainId.ARBITRUM_ONE]: 'https://api.thegraph.com/subgraphs/name/pancakeswap/exchange-v3-arb',
-  [ChainId.LINEA]: 'https://graph-query.linea.build/subgraphs/name/pancakeswap/exchange-v3-linea',
-  [ChainId.BASE]: 'https://api.studio.thegraph.com/query/45376/exchange-v3-base/version/latest',
-}
-
-const INFO_CLIENT_WITH_CHAIN = {
-  [ChainId.BSC]: 'https://proxy-worker-api.pancakeswap.com/bsc-exchange',
-  [ChainId.ETHEREUM]: 'https://api.thegraph.com/subgraphs/name/pancakeswap/exhange-eth',
-  [ChainId.BSC_TESTNET]: '',
-  [ChainId.GOERLI]: '',
-}
-
-const blockClientWithChain = (chainId: ChainId) => {
-  return new GraphQLClient(BLOCKS_CLIENT_WITH_CHAIN[chainId], {
+const blockClientWithChain = (chainId: FarmSupportedChainId) => {
+  // @ts-ignore
+  return new GraphQLClient(getBlocksSubgraphs({ noderealApiKey: NODE_REAL_SUBGRAPH_API_KEY })[chainId], {
     fetch,
   })
 }
 
-const infoClientWithChain = (chainId: ChainId) => {
-  return new GraphQLClient(INFO_CLIENT_WITH_CHAIN[chainId], {
-    fetch,
-  })
+const infoClientWithChain = (chainId: FarmSupportedChainId) => {
+  return new GraphQLClient(
+    // @ts-ignore
+    getV2Subgraphs({ noderealApiKey: NODE_REAL_SUBGRAPH_API_KEY, theGraphApiKey: THE_GRAPH_API_KEY })[chainId],
+    {
+      fetch,
+    },
+  )
 }
 
 const stableSwapClient = new GraphQLClient(STABLESWAP_SUBGRAPH_ENDPOINT, {
@@ -59,7 +45,7 @@ const getWeekAgoTimestamp = () => {
 
 const getBlockAtTimestamp = async (timestamp: number, chainId = ChainId.BSC) => {
   try {
-    const { blocks } = await blockClientWithChain(chainId).request<BlockResponse>(
+    const { blocks } = await blockClientWithChain(chainId as FarmSupportedChainId).request<BlockResponse>(
       `query getBlock($timestampGreater: Int!, $timestampLess: Int!) {
         blocks(first: 1, where: { timestamp_gt: $timestampGreater, timestamp_lt: $timestampLess }) {
           number
@@ -164,7 +150,7 @@ const getAprsForStableFarm = async (stableFarm: any): Promise<BigNumber> => {
 
     const { virtualPriceAtLatestBlock, virtualPriceOneDayAgo: virtualPrice7DayAgo } = await stableSwapClient.request(
       gql`
-        query virtualPriceStableSwap($stableSwapAddress: String, $blockDayAgo: Int!) {
+        query virtualPriceStableSwap($stableSwapAddress: ID!, $blockDayAgo: Int!) {
           virtualPriceAtLatestBlock: pair(id: $stableSwapAddress) {
             virtualPrice
           }

@@ -1,21 +1,22 @@
 import { useTranslation } from '@pancakeswap/localization'
 import { Currency, TradeType } from '@pancakeswap/sdk'
+import { SmartRouterTrade } from '@pancakeswap/smart-router'
 import tryParseAmount from '@pancakeswap/utils/tryParseAmount'
 import { useQuery } from '@tanstack/react-query'
 import { MutableRefObject, useMemo, useRef } from 'react'
 import { Field } from 'state/swap/actions'
 import { useCurrencyBalances } from 'state/wallet/hooks'
-import { useMMLinkedPoolByDefault } from 'state/user/mmLinkedPool'
-import { SmartRouterTrade } from '@pancakeswap/smart-router/evm'
 
 import { safeGetAddress } from 'utils'
 
+import { UnsafeCurrency } from 'config/constants/types'
 import { useAccount } from 'wagmi'
+import { useMMLinkedPoolByDefault } from 'state/user/smartRouter'
 import { getMMOrderBook } from '../apis'
 import { MMOrderBookTrade, OrderBookRequest, OrderBookResponse } from '../types'
 import { parseMMTrade } from '../utils/exchange'
-import { useMMParam } from './useMMParam'
 import { useIsMMQuotingPair } from './useIsMMQuotingPair'
+import { useMMParam } from './useMMParam'
 
 // TODO: update
 const BAD_RECIPIENT_ADDRESSES: string[] = [
@@ -63,7 +64,7 @@ export const useOrderBookQuote = (
   rfqRequest: OrderBookRequest | null,
   rfqUserInputPath: MutableRefObject<string>,
   isRFQLive: MutableRefObject<boolean>,
-): { data: OrderBookResponse; isLoading: boolean } => {
+): { data?: OrderBookResponse; isLoading: boolean } => {
   const [isMMLinkedPoolByDefault] = useMMLinkedPoolByDefault()
   const inputPath = `${request?.networkId}/${request?.makerSideToken}/${request?.takerSideToken}/${request?.makerSideTokenAmount}/${request?.takerSideTokenAmount}`
   const rfqInputPath = `${rfqRequest?.networkId}/${rfqRequest?.makerSideToken}/${rfqRequest?.takerSideToken}/${rfqRequest?.makerSideTokenAmount}/${rfqRequest?.takerSideTokenAmount}`
@@ -76,19 +77,21 @@ export const useOrderBookQuote = (
       request.takerSideTokenAmount !== '0' &&
       checkOrderBookShouldRefetch(rfqInputPath, rfqUserInputPath, isRFQLive),
   )
-  const { data, isLoading } = useQuery([`orderBook/${inputPath}`], () => getMMOrderBook(request as OrderBookRequest), {
+  const { data, isPending } = useQuery({
+    queryKey: [`orderBook/${inputPath}`],
+    queryFn: () => getMMOrderBook(request as OrderBookRequest),
     refetchInterval: 5000,
     enabled,
   })
-  return { data: isMMLinkedPoolByDefault ? data : undefined, isLoading: enabled && isLoading }
+  return { data: isMMLinkedPoolByDefault ? data : undefined, isLoading: enabled && isPending }
 }
 
 export const useMMTrade = (
   independentField: Field,
   typedValue: string,
-  inputCurrency: Currency | undefined,
-  outputCurrency: Currency | undefined,
-): MMOrderBookTrade | null => {
+  inputCurrency: UnsafeCurrency,
+  outputCurrency: UnsafeCurrency,
+): MMOrderBookTrade<SmartRouterTrade<TradeType>> => {
   const { t } = useTranslation()
   const { address: account } = useAccount()
   const rfqUserInputPath = useRef<string>('')
@@ -190,7 +193,7 @@ export const useMMTrade = (
     return result
   }, [account, amountIn, balanceIn, bestTradeWithMM, currencies, mmQuote?.message?.error, parsedAmount, t, to])
 
-  return useMemo(() => {
+  return useMemo<MMOrderBookTrade<SmartRouterTrade<TradeType>>>(() => {
     return {
       trade: bestTradeWithMM,
       parsedAmount,

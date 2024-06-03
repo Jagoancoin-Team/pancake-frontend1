@@ -1,7 +1,7 @@
 import { getPoolContractBySousId } from '@pancakeswap/pools'
 
-import { Abi, Address } from 'viem'
-import { erc20ABI, usePublicClient, useWalletClient } from 'wagmi'
+import { Abi, Address, erc20Abi } from 'viem'
+import { usePublicClient, useWalletClient } from 'wagmi'
 
 import { useActiveChainId } from 'hooks/useActiveChainId'
 
@@ -15,6 +15,7 @@ import {
   getBCakeFarmBoosterProxyFactoryContract,
   getBCakeFarmBoosterV3Contract,
   getBCakeFarmBoosterVeCakeContract,
+  getBCakeFarmWrapperBoosterVeCakeContract,
   getBCakeProxyContract,
   getBunnyFactoryContract,
   getCakeFlexibleSideVaultV2Contract,
@@ -35,6 +36,7 @@ import {
   getNonBscVaultContract,
   getPointCenterIfoContract,
   getPositionManagerAdapterContract,
+  getPositionManagerBCakeWrapperContract,
   getPositionManagerWrapperContract,
   getPotteryDrawContract,
   getPotteryVaultContract,
@@ -55,6 +57,7 @@ import {
   getTradingRewardContract,
   getTradingRewardTopTradesContract,
   getUnsContract,
+  getV2SSBCakeWrapperContract,
   getV3AirdropContract,
   getV3MigratorContract,
   getVCakeContract,
@@ -100,14 +103,14 @@ export const useIfoV7Contract = (address: Address, options?: UseContractOptions)
   return useContract(address, ifoV7ABI, options)
 }
 
-export const useERC20 = (address: Address, options?: UseContractOptions) => {
-  return useContract(address, erc20ABI, options)
+export const useERC20 = (address?: Address, options?: UseContractOptions) => {
+  return useContract(address, erc20Abi, options)
 }
 
 export const useCake = () => {
   const { chainId } = useActiveChainId()
 
-  return useContract((chainId && CAKE[chainId]?.address) ?? CAKE[ChainId.BSC].address, erc20ABI)
+  return useContract((chainId && CAKE[chainId]?.address) ?? CAKE[ChainId.BSC].address, erc20Abi)
 }
 
 export const useBunnyFactory = () => {
@@ -173,7 +176,7 @@ export const useTradingCompetitionContractMoD = () => {
 }
 
 export const useVaultPoolContract = <T extends VaultKey>(
-  vaultKey: T,
+  vaultKey?: T,
 ):
   | (T extends VaultKey.CakeVault
       ? ReturnType<typeof getCakeVaultV2Contract>
@@ -235,7 +238,7 @@ export const useNftMarketContract = () => {
   return useMemo(() => getNftMarketContract(signer ?? undefined), [signer])
 }
 
-export const useErc721CollectionContract = (collectionAddress: Address) => {
+export const useErc721CollectionContract = (collectionAddress: Address | undefined) => {
   return useContract(collectionAddress, erc721CollectionABI)
 }
 
@@ -276,7 +279,7 @@ export function useContract<TAbi extends Abi>(
 }
 
 export function useTokenContract(tokenAddress?: Address) {
-  return useContract(tokenAddress, erc20ABI)
+  return useContract(tokenAddress, erc20Abi)
 }
 
 export function useWNativeContract() {
@@ -292,7 +295,7 @@ export function useWBETHContract() {
     [chainId],
   )
 
-  return useContract(chainId ? WBETH[chainId] : undefined, abi)
+  return useContract(chainId ? WBETH[chainId] : undefined, abi as Abi)
 }
 
 export function useBytes32TokenContract(tokenAddress?: Address) {
@@ -340,6 +343,15 @@ export function useBCakeFarmBoosterVeCakeContract() {
   return useMemo(() => getBCakeFarmBoosterVeCakeContract(signer ?? undefined, chainId), [signer, chainId])
 }
 
+export function useBCakeFarmWrapperBoosterVeCakeContract(address: Address) {
+  const { chainId } = useActiveChainId()
+  const { data: signer } = useWalletClient()
+  return useMemo(
+    () => getBCakeFarmWrapperBoosterVeCakeContract(address, signer ?? undefined, chainId),
+    [signer, chainId, address],
+  )
+}
+
 export function usePositionManagerWrapperContract(address: Address) {
   const { chainId } = useActiveChainId()
   const { data: signer } = useWalletClient()
@@ -349,7 +361,22 @@ export function usePositionManagerWrapperContract(address: Address) {
   )
 }
 
-export function usePositionManagerAdepterContract(address: Address) {
+export function usePositionManagerBCakeWrapperContract(address: Address) {
+  const { chainId } = useActiveChainId()
+  const { data: signer } = useWalletClient()
+  return useMemo(
+    () => getPositionManagerBCakeWrapperContract(address, signer ?? undefined, chainId),
+    [signer, chainId, address],
+  )
+}
+
+export function useV2SSBCakeWrapperContract(address: Address) {
+  const { chainId } = useActiveChainId()
+  const { data: signer } = useWalletClient()
+  return useMemo(() => getV2SSBCakeWrapperContract(address, signer ?? undefined, chainId), [signer, chainId, address])
+}
+
+export function usePositionManagerAdapterContract(address: Address) {
   const { chainId } = useActiveChainId()
   const { data: signer } = useWalletClient()
   return useMemo(
@@ -385,7 +412,7 @@ export const useUNSContract = (address, chainId, provider) => {
   return useMemo(() => getUnsContract(address, chainId, provider), [chainId, address, provider])
 }
 
-export const useCrossFarmingProxy = (proxyContractAddress: Address) => {
+export const useCrossFarmingProxy = (proxyContractAddress?: Address) => {
   const { chainId } = useActiveChainId()
   const { data: signer } = useWalletClient()
   return useMemo(

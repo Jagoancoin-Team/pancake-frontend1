@@ -1,4 +1,4 @@
-import { Address } from 'wagmi'
+import { Address } from 'viem'
 
 export type Actions =
   | { type: 'next_step' }
@@ -10,10 +10,10 @@ export type Actions =
 export interface State {
   isInitialized: boolean
   currentStep: number
-  teamId: number
+  teamId?: number
   selectedNft: {
-    tokenId: string
-    collectionAddress: Address
+    tokenId?: string
+    collectionAddress?: Address
   }
   userName: string
   minimumCakeRequired: bigint

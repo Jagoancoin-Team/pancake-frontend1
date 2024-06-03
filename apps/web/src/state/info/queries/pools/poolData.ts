@@ -4,7 +4,7 @@ import { subgraphTokenSymbol } from 'state/info/constant'
 import { Block, PoolData } from 'state/info/types'
 import { getChangeForPeriod } from 'utils/getChangeForPeriod'
 import { getLpFeesAndApr } from 'utils/getLpFeesAndApr'
-import { getAmountChange, getPercentChange } from 'views/Info/utils/infoDataHelpers'
+import { getAmountChange, getPercentChange } from 'utils/infoDataHelpers'
 
 import { safeGetAddress } from 'utils'
 import {
@@ -12,7 +12,6 @@ import {
   STABLESWAP_SUBGRAPHS_START_BLOCK,
   checkIsStableSwap,
   getMultiChainQueryEndPointWithStableSwap,
-  multiChainQueryMainToken,
 } from '../../constant'
 import { fetchTopPoolAddresses } from './topPools'
 
@@ -73,7 +72,7 @@ const POOL_AT_BLOCK = (chainName: MultiChainName, block: number | null, pools: s
   return `pairs(
     where: { id_in: ${addressesString} }
     ${blockString}
-    orderBy: trackedReserve${multiChainQueryMainToken[chainName]}
+    orderBy: trackedReserveETH
     orderDirection: desc
   ) {
     id
@@ -114,17 +113,17 @@ export const fetchPoolData = async (
         now: ${POOL_AT_BLOCK(chainName, null, poolAddresses)}
         oneDayAgo: ${POOL_AT_BLOCK(chainName, block24h, poolAddresses)}
         ${
-          (Boolean(startBlock) && startBlock <= block48h) || !startBlock
+          ((Boolean(startBlock) && startBlock <= block48h) || !startBlock) && block48h > 0
             ? `twoDaysAgo: ${POOL_AT_BLOCK(chainName, block48h, poolAddresses)}`
             : ''
         }
         ${
-          (Boolean(startBlock) && startBlock <= block7d) || !startBlock
+          ((Boolean(startBlock) && startBlock <= block7d) || !startBlock) && block7d > 0
             ? `oneWeekAgo: ${POOL_AT_BLOCK(chainName, block7d, poolAddresses)}`
             : ''
         }
         ${
-          (Boolean(startBlock) && startBlock <= block14d) || !startBlock
+          ((Boolean(startBlock) && startBlock <= block14d) || !startBlock) && block14d > 0
             ? `twoWeeksAgo: ${POOL_AT_BLOCK(chainName, block14d, poolAddresses)}`
             : ''
         }
@@ -165,12 +164,11 @@ export const fetchAllPoolDataWithAddress = async (
   poolAddresses: string[],
 ) => {
   const [block24h, block48h, block7d, block14d] = blocks ?? []
-
   const { data } = await fetchPoolData(
-    block24h.number,
-    block48h.number,
-    block7d.number,
-    block14d.number,
+    block24h?.number ?? 0,
+    block48h?.number ?? 0,
+    block7d?.number ?? 0,
+    block14d?.number ?? 0,
     poolAddresses,
     chainName,
   )

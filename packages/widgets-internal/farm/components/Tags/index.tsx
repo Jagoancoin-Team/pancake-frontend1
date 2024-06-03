@@ -1,32 +1,31 @@
 import { useTranslation } from "@pancakeswap/localization";
-import React, { memo } from "react";
-import type { FeeAmount } from "@pancakeswap/v3-sdk";
 import {
-  Text,
-  TooltipText,
+  AlpIcon,
+  ArbitrumIcon,
+  AutoRenewIcon,
+  BaseIcon,
+  BinanceChainIcon,
+  BlockIcon,
+  CheckmarkCircleIcon,
+  CommunityIcon,
+  EthChainIcon,
+  LineaIcon,
+  LockIcon,
+  RefreshIcon,
+  RocketIcon,
   Tag,
   TagProps,
-  useTooltip,
-  AutoRenewIcon,
-  BlockIcon,
-  CommunityIcon,
-  RefreshIcon,
+  Text,
   TimerIcon,
+  TooltipText,
   VerifiedIcon,
   VoteIcon,
-  LockIcon,
-  RocketIcon,
-  CheckmarkCircleIcon,
-  CurrencyIcon,
-  BinanceChainIcon,
-  EthChainIcon,
   ZkEVMIcon,
   ZkSyncIcon,
-  LineaIcon,
-  BaseIcon,
-  ArbitrumIcon,
-  AlpIcon,
+  useTooltip,
 } from "@pancakeswap/uikit";
+import type { FeeAmount } from "@pancakeswap/v3-sdk";
+import React, { memo } from "react";
 
 const CoreTag: React.FC<React.PropsWithChildren<TagProps>> = (props) => {
   const { t } = useTranslation();
@@ -78,7 +77,7 @@ const StableFarmTag: React.FC<React.PropsWithChildren<TagProps>> = (props) => {
         display="flex"
         style={{ textDecoration: "none", justifyContent: "center", alignSelf: "center" }}
       >
-        <Tag variant="failure" outline startIcon={<CurrencyIcon width="18px" color="failure" mr="4px" />} {...props}>
+        <Tag variant="textSubtle" style={{ padding: 8 }} {...props}>
           {t("Stable LP")}
         </Tag>
       </TooltipText>
@@ -226,6 +225,14 @@ const BscTag: React.FC<React.PropsWithChildren<TagProps>> = (props) => {
   );
 };
 
+const OpBnbTag: React.FC<React.PropsWithChildren<TagProps>> = (props) => {
+  return (
+    <Tag style={{ background: "#08060B" }} startIcon={<BinanceChainIcon width="18px" mr="4px" />} {...props}>
+      opBNB
+    </Tag>
+  );
+};
+
 const ZkEVMTag: React.FC<React.PropsWithChildren<TagProps>> = (props) => {
   return (
     <Tag
@@ -305,6 +312,7 @@ const Tags = {
   BaseTag,
   LineaTag,
   AlpBoostedTag,
+  OpBnbTag,
 };
 
 export default Tags;

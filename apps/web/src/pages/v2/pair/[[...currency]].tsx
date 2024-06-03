@@ -8,21 +8,21 @@ import { styled } from 'styled-components'
 import { CHAIN_IDS } from 'utils/wagmi'
 import Page from 'views/Page'
 
+import { getFarmConfig } from '@pancakeswap/farms/constants'
+import { useTranslation } from '@pancakeswap/localization'
+import { useQuery } from '@tanstack/react-query'
 import { LightGreyCard } from 'components/Card'
 import { usePoolTokenPercentage, useTokensDeposited, useTotalUSDValue } from 'components/PositionCard'
 import { useCurrency } from 'hooks/Tokens'
+import { useActiveChainId } from 'hooks/useActiveChainId'
+import { useMasterchef } from 'hooks/useContract'
 import { useV2Pair } from 'hooks/usePairs'
 import useTotalSupply from 'hooks/useTotalSupply'
 import { useRouter } from 'next/router'
-import { useTokenBalance } from 'state/wallet/hooks'
-import { useAccount } from 'wagmi'
-import { useTranslation } from '@pancakeswap/localization'
 import { useLPApr } from 'state/swap/useLPApr'
+import { useTokenBalance } from 'state/wallet/hooks'
 import { formatAmount } from 'utils/formatInfoNumbers'
-import { getFarmConfig } from '@pancakeswap/farms/constants'
-import { useActiveChainId } from 'hooks/useActiveChainId'
-import { useMasterchef } from 'hooks/useContract'
-import { useQuery } from '@tanstack/react-query'
+import { useAccount } from 'wagmi'
 
 export const BodyWrapper = styled(Card)`
   border-radius: 24px;
@@ -62,27 +62,27 @@ export default function PoolV2Page() {
 
   const masterchefV2Contract = useMasterchef()
 
-  const { data: isFarmExistActiveForPair } = useQuery(
-    ['isFarmExistActiveForPair', chainId, pair?.liquidityToken?.address],
-    async () => {
+  const { data: isFarmExistActiveForPair } = useQuery({
+    queryKey: ['isFarmExistActiveForPair', chainId, pair?.liquidityToken?.address],
+
+    queryFn: async () => {
       const farmsConfig = (await getFarmConfig(chainId)) || []
       const farmPair = farmsConfig.find(
         (farm) => farm.lpAddress.toLowerCase() === pair?.liquidityToken?.address?.toLowerCase(),
       )
       if (farmPair) {
-        const poolInfo = await masterchefV2Contract.read.poolInfo([BigInt(farmPair.pid)])
-        const allocPoint = poolInfo[2] as bigint
+        const poolInfo = await masterchefV2Contract?.read.poolInfo([BigInt(farmPair.pid)])
+        const allocPoint = poolInfo ? (poolInfo[2] as bigint) : 0
         return allocPoint > 0 ? 'exist' : 'notexist'
       }
       return 'exist'
     },
-    {
-      enabled: Boolean(chainId && pair && masterchefV2Contract),
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      refetchOnMount: false,
-    },
-  )
+
+    enabled: Boolean(chainId && pair && masterchefV2Contract),
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+  })
 
   const { isMobile } = useMatchBreakpoints()
 
@@ -105,7 +105,7 @@ export default function PoolV2Page() {
           buttons={
             !isMobile && (
               <>
-                <NextLinkFromReactRouter to={`/v2/add/${pair?.token0.address}/${pair?.token1.address}`}>
+                <NextLinkFromReactRouter to={`/v2/add/${pair?.token0.address}/${pair?.token1.address}?increase=1`}>
                   <Button width="100%" disabled={!pair}>
                     {t('Add')}
                   </Button>
@@ -132,7 +132,7 @@ export default function PoolV2Page() {
         <CardBody>
           {isMobile && (
             <>
-              <NextLinkFromReactRouter to={`/v2/add/${pair?.token0.address}/${pair?.token1.address}`}>
+              <NextLinkFromReactRouter to={`/v2/add/${pair?.token0.address}/${pair?.token1.address}?increase=1`}>
                 <Button width="100%" mb="8px" disabled={!pair}>
                   {t('Add')}
                 </Button>
@@ -208,3 +208,4 @@ export default function PoolV2Page() {
 }
 
 PoolV2Page.chains = CHAIN_IDS
+PoolV2Page.screen = true

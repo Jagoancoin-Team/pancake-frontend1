@@ -1,11 +1,11 @@
 import { useTranslation } from '@pancakeswap/localization'
-import { SendTransactionResult } from 'wagmi/actions'
 import { Currency, CurrencyAmount } from '@pancakeswap/sdk'
 import { AutoColumn, Button } from '@pancakeswap/uikit'
 import { CommitButton } from 'components/CommitButton'
 import ConnectWalletButton from 'components/ConnectWalletButton'
 import { ApprovalState } from 'hooks/useApproveCallback'
 import { ReactNode, useMemo } from 'react'
+import { Address } from 'viem'
 import ApproveLiquidityTokens from 'views/AddLiquidityV3/components/ApproveLiquidityTokens'
 import { Field } from '../formViews/V3FormView/form/actions'
 
@@ -18,16 +18,16 @@ interface V3SubmitButtonProps {
   approvalB: ApprovalState
   isValid: boolean
   showApprovalA: boolean
-  approveACallback: () => Promise<SendTransactionResult>
+  approveACallback: () => Promise<{ hash: Address } | undefined>
   currentAllowanceA: CurrencyAmount<Currency> | undefined
-  revokeACallback: () => Promise<SendTransactionResult>
+  revokeACallback: () => Promise<{ hash: Address } | undefined>
   currencies: {
     CURRENCY_A?: Currency
     CURRENCY_B?: Currency
   }
-  approveBCallback: () => Promise<SendTransactionResult>
+  approveBCallback: () => Promise<{ hash: Address } | undefined>
   currentAllowanceB: CurrencyAmount<Currency> | undefined
-  revokeBCallback: () => Promise<SendTransactionResult>
+  revokeBCallback: () => Promise<{ hash: Address } | undefined>
   showApprovalB: boolean
   parsedAmounts: {
     CURRENCY_A?: CurrencyAmount<Currency>

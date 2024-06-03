@@ -1,5 +1,11 @@
-import { Ifo, fetchUserVestingData, UserVestingData, VestingCharacteristics } from '@pancakeswap/ifos'
-import { Address } from 'wagmi'
+import {
+  Ifo,
+  UserVestingData,
+  VestingCharacteristics,
+  fetchUserVestingData,
+  fetchUserVestingDataV8,
+} from '@pancakeswap/ifos'
+import { Address } from 'viem'
 
 import { getViemClients } from 'utils/viem'
 
@@ -11,8 +17,9 @@ export interface VestingData {
 }
 
 export const fetchUserWalletIfoData = async (ifo: Ifo, account?: Address): Promise<VestingData> => {
-  const { address, chainId } = ifo
-  const userVestingData = await fetchUserVestingData({
+  const { address, chainId, version } = ifo
+  const fetchUserData = version >= 8 ? fetchUserVestingDataV8 : fetchUserVestingData
+  const userVestingData = await fetchUserData({
     ifoAddress: address,
     chainId,
     account,

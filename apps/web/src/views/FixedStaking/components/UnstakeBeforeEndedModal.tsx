@@ -84,14 +84,14 @@ export function UnstakeBeforeEnededModal({
         <Modal
           title={<ModalTitle token={token} tokenTitle={token.symbol} lockPeriod={lockPeriod} />}
           width={['100%', '100%', '420px']}
-          maxWidth={['100%', , '420px']}
+          maxWidth={['100%', null, '420px']}
         >
           <PreTitle mb="4px">{t('Unstake Overview')}</PreTitle>
           <LightCard mb="16px">
             <Flex justifyContent="space-between">
               <Box>
                 <Text fontSize="12px" textTransform="uppercase" bold color="textSubtle">
-                  {t('Commission')}
+                  {t('Withdrawal Fee')}
                 </Text>
                 <Text color="#D67E0A" fontSize="20px" bold mb="-4px">
                   {withdrawFee.toSignificant(2)} {token.symbol}

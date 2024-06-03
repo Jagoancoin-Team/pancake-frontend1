@@ -1,5 +1,127 @@
 # @pancakeswap/tokens
 
+## 0.6.17
+
+### Patch Changes
+
+- b57fd91: Add ONEPUNCH token on Linea
+- 755bb18: New FURY Token. 2 BSC Farms. 3 zkSync Farms. New Gauges.
+- 502d961: Add MNT and mETH tokens with their farms and gauges on Ethereum
+- Updated dependencies [e99c216]
+  - @pancakeswap/sdk@5.8.3
+
+## 0.6.16
+
+### Patch Changes
+
+- b20f210: Correction of $MAGIC token name from "Magic Internet Money" to "MAGIC"
+- 9bef4cd: Add Native USDC on zkSync
+
+## 0.6.15
+
+### Patch Changes
+
+- Updated dependencies [0f4281c]
+- Updated dependencies [63a63d8]
+  - @pancakeswap/chains@0.4.3
+  - @pancakeswap/sdk@5.8.2
+  - @pancakeswap/token-lists@0.0.11
+
+## 0.6.14
+
+### Patch Changes
+
+- e8c58b7: Fix missing publish
+
+## 0.6.13
+
+### Patch Changes
+
+- b4a1d82: Add wBETH mwBETH stable pair
+
+## 0.6.12
+
+### Patch Changes
+
+- Updated dependencies [72c834c]
+- Updated dependencies [d4283e5]
+  - @pancakeswap/sdk@5.8.1
+  - @pancakeswap/chains@0.4.2
+  - @pancakeswap/token-lists@0.0.11
+
+## 0.6.11
+
+### Patch Changes
+
+- 30ef48c: Add new tokens
+
+## 0.6.10
+
+### Patch Changes
+
+- d7586b8: Update farms, pools, gauges, tokens
+
+## 0.6.9
+
+### Patch Changes
+
+- e26505f: List new pool, farm, token and gauges
+
+## 0.6.8
+
+### Patch Changes
+
+- 928b9a8: Bump version only
+
+## 0.6.7
+
+### Patch Changes
+
+- Updated dependencies [610a24a]
+  - @pancakeswap/sdk@5.8.0
+  - @pancakeswap/token-lists@0.0.11
+
+## 0.6.6
+
+### Patch Changes
+
+- @pancakeswap/sdk@5.7.7
+- @pancakeswap/token-lists@0.0.10
+
+## 0.6.5
+
+### Patch Changes
+
+- 6157db8: add defi
+
+## 0.6.4
+
+### Patch Changes
+
+- 82f61f9: Bump token for missing sol
+
+## 0.6.3
+
+### Patch Changes
+
+- a8ffc15: Add dlp mdlp stable pair
+
+## 0.6.2
+
+### Patch Changes
+
+- 91969f80f: Add sepolia, base sepolia, arbitrum sepolia support
+- Updated dependencies [91969f80f]
+  - @pancakeswap/sdk@5.7.6
+  - @pancakeswap/chains@0.4.1
+  - @pancakeswap/token-lists@0.0.9
+
+## 0.6.1
+
+### Patch Changes
+
+- 48ac84692: Add new stable pairs
+
 ## 0.6.0
 
 ### Minor Changes

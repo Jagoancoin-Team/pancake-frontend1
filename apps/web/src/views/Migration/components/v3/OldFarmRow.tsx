@@ -1,15 +1,17 @@
 import { useMatchBreakpoints } from '@pancakeswap/uikit'
+import { BIG_ZERO } from '@pancakeswap/utils/bigNumber'
 import React, { useState } from 'react'
 import { useFarmUser } from 'state/farms/hooks'
-import ProxyFarmContainer from 'views/Farms/components/YieldBooster/components/ProxyFarmContainer'
 import { styled } from 'styled-components'
+import ProxyFarmContainer from 'views/Farms/components/YieldBooster/components/ProxyFarmContainer'
+import ExpandActionCell from '../Cells/ExpandActionCell'
 import Earned from '../Farm/Cells/Earned'
 import Farm from '../Farm/Cells/Farm'
 import Liquidity from '../Farm/Cells/Liquidity'
 import Multiplier from '../Farm/Cells/Multiplier'
 import Staked from '../Farm/Cells/Staked'
-import ExpandActionCell from '../Cells/ExpandActionCell'
 import Unstake from '../Farm/Cells/Unstake'
+import V2StakeButton from '../bCake/V2StakedButton'
 import { RowProps } from '../types'
 import UnstableButton from './UnstakeButton'
 
@@ -43,13 +45,14 @@ const RightContainer = styled.div`
   }
 `
 
-export const V3OldFarmRow: React.FunctionComponent<React.PropsWithChildren<RowProps>> = ({
+export const V3OldFarmRow: React.FunctionComponent<React.PropsWithChildren<RowProps & { step?: number }>> = ({
   farm,
   staked,
   earned,
   multiplier,
   liquidity,
   unstake,
+  step,
 }) => {
   const { isMobile, isXl, isXxl } = useMatchBreakpoints()
   const isLargerScreen = isXl || isXxl
@@ -70,8 +73,28 @@ export const V3OldFarmRow: React.FunctionComponent<React.PropsWithChildren<RowPr
           <Farm {...farm} />
           {isLargerScreen || expanded ? (
             <>
-              <Staked {...staked} stakedBalance={farm.boosted ? proxy?.stakedBalance : stakedBalance} />
-              <Earned {...earned} />
+              <Staked
+                {...staked}
+                stakedBalance={
+                  step === 2
+                    ? farm.bCakeUserData?.stakedBalance ?? BIG_ZERO
+                    : farm.boosted && proxy?.stakedBalance.gt(0)
+                    ? proxy?.stakedBalance ?? BIG_ZERO
+                    : stakedBalance
+                }
+              />
+              <Earned
+                {...earned}
+                earnings={
+                  step === 2
+                    ? ((farm.bCakeUserData?.earnings ?? BIG_ZERO)?.div(10 ** 18) ?? BIG_ZERO).toNumber()
+                    : (
+                        (farm.boosted && proxy?.earnings.gt(0) ? proxy.earnings : farm.userData?.earnings)?.div(
+                          10 ** 18,
+                        ) ?? BIG_ZERO
+                      ).toNumber()
+                }
+              />
               <Multiplier {...multiplier} />
             </>
           ) : null}
@@ -81,7 +104,16 @@ export const V3OldFarmRow: React.FunctionComponent<React.PropsWithChildren<RowPr
           {isLargerScreen || expanded ? (
             <ProxyFarmContainer farm={farm}>
               <Unstake>
-                <UnstableButton {...unstake} />
+                {step === 2 ? (
+                  <V2StakeButton
+                    onDone={() => {}}
+                    wrapperAddress={farm.bCakeWrapperAddress}
+                    lpSymbol={farm.label}
+                    pid={farm.pid}
+                  />
+                ) : (
+                  <UnstableButton {...unstake} />
+                )}
               </Unstake>
             </ProxyFarmContainer>
           ) : null}

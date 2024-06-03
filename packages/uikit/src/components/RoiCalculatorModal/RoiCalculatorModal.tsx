@@ -52,7 +52,7 @@ const FullWidthButtonMenu = styled(ButtonMenu)<{ disabled?: boolean }>`
 `;
 
 export interface RoiCalculatorModalProps {
-  account: string;
+  account?: string;
   pid?: number;
   earningTokenPrice: number;
   apr?: number;
@@ -60,7 +60,7 @@ export interface RoiCalculatorModalProps {
   apy?: number;
   displayApr?: string;
   linkLabel: string;
-  linkHref: string;
+  linkHref?: string;
   stakingTokenBalance: BigNumber;
   stakingTokenDecimals: number;
   stakingTokenSymbol: string;
@@ -84,6 +84,7 @@ export interface RoiCalculatorModalProps {
   farmCakePerSecond?: string;
   totalMultipliers?: string;
   dualTokenRewardApr?: number;
+  isBCakeBooster?: boolean;
 }
 
 const RoiCalculatorModal: React.FC<React.PropsWithChildren<RoiCalculatorModalProps>> = ({
@@ -119,10 +120,10 @@ const RoiCalculatorModal: React.FC<React.PropsWithChildren<RoiCalculatorModalPro
   totalMultipliers,
   dualTokenRewardApr,
   lpRewardsApr,
+  isBCakeBooster,
 }) => {
   const { t } = useTranslation();
   const balanceInputRef = useRef<HTMLInputElement | null>(null);
-
   const {
     state,
     setPrincipalFromUSDValue,
@@ -325,6 +326,7 @@ const RoiCalculatorModal: React.FC<React.PropsWithChildren<RoiCalculatorModalPro
         farmCakePerSecond={farmCakePerSecond}
         totalMultipliers={totalMultipliers}
         dualTokenRewardApr={dualTokenRewardApr}
+        isBCakeBooster={isBCakeBooster}
       />
     </StyledModal>
   );

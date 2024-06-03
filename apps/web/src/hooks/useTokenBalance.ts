@@ -4,7 +4,9 @@ import { BIG_ZERO } from '@pancakeswap/utils/bigNumber'
 import BigNumber from 'bignumber.js'
 import { useMemo } from 'react'
 import { getVeCakeAddress } from 'utils/addressHelpers'
-import { Address, erc20ABI, useAccount, useBalance, useContractRead } from 'wagmi'
+import { Address, erc20Abi } from 'viem'
+import { useAccount } from 'wagmi'
+import { useBalance, useReadContract } from '@pancakeswap/wagmi'
 import { useActiveChainId } from './useActiveChainId'
 
 const useTokenBalance = (tokenAddress: Address, forceBSC?: boolean) => {
@@ -15,18 +17,21 @@ export const useTokenBalanceByChain = (tokenAddress: Address, chainIdOverride?: 
   const { address: account } = useAccount()
   const { chainId } = useActiveChainId()
 
-  const { data, status, ...rest } = useContractRead({
+  const { data, status, refetch, ...rest } = useReadContract({
     chainId: chainIdOverride || chainId,
-    abi: erc20ABI,
+    abi: erc20Abi,
     address: tokenAddress,
     functionName: 'balanceOf',
     args: [account || '0x'],
-    enabled: !!account,
+    query: {
+      enabled: !!account,
+    },
     watch: true,
   })
 
   return {
     ...rest,
+    refetch,
     fetchStatus: status,
     balance: useMemo(() => (typeof data !== 'undefined' ? new BigNumber(data.toString()) : BIG_ZERO), [data]),
   }
@@ -34,11 +39,14 @@ export const useTokenBalanceByChain = (tokenAddress: Address, chainIdOverride?: 
 
 export const useGetBnbBalance = () => {
   const { address: account } = useAccount()
+
   const { status, refetch, data } = useBalance({
     chainId: ChainId.BSC,
     address: account,
+    query: {
+      enabled: !!account,
+    },
     watch: true,
-    enabled: !!account,
   })
 
   return { balance: data?.value ? BigInt(data.value) : 0n, fetchStatus: status, refresh: refetch }
@@ -47,11 +55,14 @@ export const useGetBnbBalance = () => {
 export const useGetNativeTokenBalance = () => {
   const { address: account } = useAccount()
   const { chainId } = useActiveChainId()
+
   const { status, refetch, data } = useBalance({
     chainId,
     address: account,
+    query: {
+      enabled: !!account,
+    },
     watch: true,
-    enabled: !!account,
   })
 
   return { balance: data?.value ? BigInt(data.value) : 0n, fetchStatus: status, refresh: refetch }

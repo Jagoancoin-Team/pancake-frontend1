@@ -14,13 +14,14 @@ import uniq from 'lodash/uniq'
 import { useCallback, useMemo } from 'react'
 import { useAllLists } from 'state/lists/hooks'
 import { getContract } from 'utils/contractHelpers'
-import { Address, useWalletClient } from 'wagmi'
+import { Address } from 'viem'
+import { useWalletClient } from 'wagmi'
 
 export const MERKL_API_V2 = 'https://api.angle.money/v2/merkl'
 
 export function useMerklInfo(poolAddress: string | null): {
   rewardsPerToken: CurrencyAmount<Currency>[]
-  isLoading: boolean
+  isPending: boolean
   transactionData: {
     claim: string
     token: string
@@ -29,10 +30,28 @@ export function useMerklInfo(poolAddress: string | null): {
   } | null
   hasMerkl: boolean
   refreshData: () => void
+  merklApr?: number
 } {
   const { account, chainId } = useAccountActiveChain()
 
-  const { data, isLoading, refetch } = useQuery({
+  const { data: merklData } = useQuery({
+    queryKey: ['merklAprData', chainId, poolAddress],
+    queryFn: async () => {
+      const resp = await fetch(`https://api.angle.money/v2/merkl?chainIds[]=${chainId}&AMMs[]=pancakeswapv3`)
+      if (resp.ok) {
+        const result = await resp.json()
+        return result
+      }
+      throw resp
+    },
+    enabled: Boolean(chainId) && Boolean(poolAddress),
+  })
+
+  const merklApr = merklData?.[chainId ?? 0]?.pools?.[poolAddress ?? '']?.aprs?.['Average APR (rewards / pool TVL)'] as
+    | number
+    | undefined
+
+  const { data, isPending, refetch } = useQuery({
     queryKey: [`fetchMerkl-${chainId}-${poolAddress}-${account || 'no-account'}`],
     queryFn: async () => {
       const responsev2 = await fetch(
@@ -76,7 +95,7 @@ export function useMerklInfo(poolAddress: string | null): {
         rewardsPerToken,
         rewardTokenAddresses: uniq(merklPoolData?.distributionData?.map((d) => d.token)),
         transactionData,
-        isLoading,
+        isPending,
       }
     },
   })
@@ -115,8 +134,9 @@ export function useMerklInfo(poolAddress: string | null): {
       ...rest,
       rewardsPerToken: rewardsPerToken.length ? rewardsPerToken : rewardCurrencies,
       refreshData: refetch,
+      merklApr,
     }
-  }, [chainId, data, lists, refetch])
+  }, [chainId, data, lists, refetch, merklApr])
 }
 
 export default function useMerkl(poolAddress: string | null) {
@@ -161,9 +181,9 @@ export default function useMerkl(poolAddress: string | null) {
     const receipt = await fetchWithCatchTxError(() => {
       return callWithGasPrice(distributorContract, 'claim', [
         tokens.map((_) => account),
-        tokens,
+        tokens as Address[],
         claims,
-        proofs as string[][],
+        proofs as Address[][],
       ])
     })
 

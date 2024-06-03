@@ -1,6 +1,6 @@
 import { ChainId } from '@pancakeswap/chains'
 import { Currency, Token, TradeType } from '@pancakeswap/sdk'
-import { SmartRouterTrade } from '@pancakeswap/smart-router/evm'
+import { SmartRouterTrade } from '@pancakeswap/smart-router'
 import { useUserSlippage } from '@pancakeswap/utils/user'
 import { FeeOptions } from '@pancakeswap/v3-sdk'
 import { captureException } from '@sentry/nextjs'
@@ -37,6 +37,7 @@ const limiter = new Bottleneck({
   maxConcurrent: 1, // only allow one request at a time
   minTime: 250, // add 250ms of spacing between requests
   highWater: 1, // only queue 1 request at a time, newer request will drop older
+  rejectOnDrop: false,
 })
 
 const addresses = {
@@ -89,9 +90,10 @@ const extractTokensFromTrade = (trade: SmartRouterTrade<TradeType> | undefined |
 function useWallchainSDK() {
   const { data: walletClient } = useWalletClient()
   const { chainId } = useActiveChainId()
-  const { data: wallchainSDK } = useQuery(
-    ['wallchainSDK', walletClient?.account, walletClient?.chain],
-    async () => {
+  const { data: wallchainSDK } = useQuery({
+    queryKey: ['wallchainSDK', walletClient?.account, walletClient?.chain],
+
+    queryFn: async () => {
       const WallchainSDK = (await import('@wallchain/sdk')).default
       return new WallchainSDK({
         keys: WallchainKeys as { [key: string]: string },
@@ -101,13 +103,12 @@ function useWallchainSDK() {
         originators,
       })
     },
-    {
-      enabled: Boolean(chainId === ChainId.BSC && walletClient && WALLCHAIN_ENABLED),
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      refetchOnMount: false,
-    },
-  )
+
+    enabled: Boolean(chainId === ChainId.BSC && walletClient && WALLCHAIN_ENABLED),
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    refetchOnMount: false,
+  })
 
   return wallchainSDK
 }
@@ -132,13 +133,14 @@ export function useWallchainApi(
   const [allowedSlippageRaw] = useUserSlippage() || [INITIAL_ALLOWED_SLIPPAGE]
   const allowedSlippage = useMemo(() => basisPointsToPercent(allowedSlippageRaw), [allowedSlippageRaw])
   const [lastUpdate, setLastUpdate] = useState(0)
+  const useUniversalRouter = true
 
   const sdk = useWallchainSDK()
 
-  const swapCalls = useSwapCallArguments(trade, allowedSlippage, account, deadline, feeOptions)
+  const swapCalls = useSwapCallArguments(trade, allowedSlippage, account, undefined, deadline, feeOptions)
 
   useEffect(() => {
-    if (!sdk || !walletClient || !trade || !account) {
+    if (!sdk || !walletClient || !trade || !account || useUniversalRouter) {
       setStatus('not-found')
       return
     }
@@ -187,7 +189,7 @@ export function useWallchainSwapCallArguments(
   previousSwapCalls: { address: `0x${string}`; calldata: `0x${string}`; value: `0x${string}` }[] | undefined | null,
   account: string | undefined | null,
   onWallchainDrop: () => void,
-  masterInput?: [TMEVFoundResponse['searcherRequest'], string],
+  masterInput?: [TMEVFoundResponse['searcherRequest'], string | undefined],
 ): SwapCall[] | WallchainSwapCall[] {
   const [swapCalls, setSwapCalls] = useState<SwapCall[] | WallchainSwapCall[]>([])
   const { data: walletClient } = useWalletClient()

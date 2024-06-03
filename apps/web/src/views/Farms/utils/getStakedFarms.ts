@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js'
-import { V3FarmWithoutStakedValue, V2FarmWithoutStakedValue } from 'views/Farms/FarmsV3'
+import { V2FarmWithoutStakedValue, V3FarmWithoutStakedValue } from 'state/farms/types'
 
 export const getStakedFarms = (
   farmsData: (V3FarmWithoutStakedValue | V2FarmWithoutStakedValue)[],
@@ -9,9 +9,9 @@ export const getStakedFarms = (
       return farm.stakedPositions.length > 0
     }
     return (
-      farm.userData &&
-      (new BigNumber(farm.userData.stakedBalance).isGreaterThan(0) ||
-        new BigNumber(farm?.userData?.proxy?.stakedBalance ?? 0).isGreaterThan(0))
+      new BigNumber(farm?.userData?.stakedBalance ?? 0).gt(0) ||
+      new BigNumber(farm?.userData?.proxy?.stakedBalance ?? 0).gt(0) ||
+      new BigNumber(farm?.bCakeUserData?.stakedBalance ?? 0).gt(0)
     )
   })
 }

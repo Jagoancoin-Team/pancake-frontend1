@@ -26,12 +26,12 @@ import useTokenBalance, { useBSCCakeBalance } from 'hooks/useTokenBalance'
 
 import { formatBigInt, getFullDisplayBalance } from '@pancakeswap/utils/formatBalance'
 import InternalLink from 'components/Links'
-import { SUPPORT_BUY_CRYPTO } from 'config/constants/supportChains'
 import { useDomainNameForAddress } from 'hooks/useDomain'
 import { useState } from 'react'
 import { isMobile } from 'react-device-detect'
 import { getBlockExploreLink, getBlockExploreName } from 'utils'
-import { Address, useBalance } from 'wagmi'
+import { Address } from 'viem'
+import { useBalance } from 'wagmi'
 
 const COLORS = {
   ETH: '#627EEA',
@@ -50,7 +50,7 @@ const WalletInfo: React.FC<WalletInfoProps> = ({ hasLowNativeBalance, onDismiss 
   const { domainName } = useDomainNameForAddress(account ?? '')
   const isBSC = chainId === ChainId.BSC
   const bnbBalance = useBalance({ address: account ?? undefined, chainId: ChainId.BSC })
-  const nativeBalance = useBalance({ address: account ?? undefined, enabled: !isBSC })
+  const nativeBalance = useBalance({ address: account ?? undefined, query: { enabled: !isBSC } })
   const native = useNativeCurrency()
   const wNativeToken = !isBSC ? WNATIVE[chainId as ChainId] : null
   const wBNBToken = WNATIVE[ChainId.BSC]
@@ -91,9 +91,8 @@ const WalletInfo: React.FC<WalletInfoProps> = ({ hasLowNativeBalance, onDismiss 
     },
   )
 
-  const showBscEntryPoint = Number(bnbBalance?.data?.value) === 0 && SUPPORT_BUY_CRYPTO.includes(chainId as ChainId)
-  const showNativeEntryPoint =
-    Number(nativeBalance?.data?.value) === 0 && SUPPORT_BUY_CRYPTO.includes(chainId as ChainId)
+  const showBscEntryPoint = Number(bnbBalance?.data?.value) === 0
+  const showNativeEntryPoint = Number(nativeBalance?.data?.value) === 0
 
   return (
     <>
@@ -104,7 +103,7 @@ const WalletInfo: React.FC<WalletInfoProps> = ({ hasLowNativeBalance, onDismiss 
         <CopyAddress tooltipMessage={t('Copied')} account={account ?? undefined} />
         {domainName ? <Text color="textSubtle">{domainName}</Text> : null}
       </FlexGap>
-      {hasLowNativeBalance && SUPPORT_BUY_CRYPTO.includes(chainId as ChainId) && (
+      {hasLowNativeBalance && (
         <Message variant="warning" mb="24px">
           <Box>
             <Text fontWeight="bold">

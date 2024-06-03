@@ -1,25 +1,25 @@
-import { useCallback } from 'react'
-import { Currency, Token } from '@pancakeswap/sdk'
 import { ChainId } from '@pancakeswap/chains'
-import { styled } from 'styled-components'
+import { useTranslation } from '@pancakeswap/localization'
+import { Currency, Token } from '@pancakeswap/sdk'
+import { WrappedTokenInfo } from '@pancakeswap/token-lists'
 import {
-  Button,
-  Text,
   ArrowUpIcon,
+  AutoColumn,
+  BscScanIcon,
+  Button,
+  ColumnCenter,
+  InjectedModalProps,
   Link,
   Modal,
-  InjectedModalProps,
   ModalProps,
-  BscScanIcon,
-  AutoColumn,
-  ColumnCenter,
+  Text,
 } from '@pancakeswap/uikit'
 import { ConfirmationPendingContent, TransactionErrorContent } from '@pancakeswap/widgets-internal'
-import { useTranslation } from '@pancakeswap/localization'
-import { wrappedCurrency } from 'utils/wrappedCurrency'
-import { WrappedTokenInfo } from '@pancakeswap/token-lists'
 import { useActiveChainId } from 'hooks/useActiveChainId'
+import { useCallback, useMemo } from 'react'
+import { styled } from 'styled-components'
 import { getBlockExploreLink, getBlockExploreName } from 'utils'
+import { wrappedCurrency } from 'utils/wrappedCurrency'
 import AddToWalletButton, { AddToWalletTextOptions } from '../AddToWallet/AddToWalletButton'
 
 const Wrapper = styled.div`
@@ -39,14 +39,21 @@ export function TransactionSubmittedContent({
   hash,
   currencyToAdd,
 }: {
-  onDismiss: () => void
+  onDismiss?: () => void
   hash: string | undefined
-  chainId: ChainId
-  currencyToAdd?: Currency | undefined
+  chainId?: ChainId
+  currencyToAdd?: Currency | undefined | null
 }) {
   const { t } = useTranslation()
 
   const token: Token | undefined = wrappedCurrency(currencyToAdd, chainId)
+
+  const showAddToWalletButton = useMemo(() => {
+    if (token && currencyToAdd) {
+      return !currencyToAdd.isNative
+    }
+    return false
+  }, [token, currencyToAdd])
 
   return (
     <Wrapper>
@@ -64,7 +71,7 @@ export function TransactionSubmittedContent({
               {chainId === ChainId.BSC && <BscScanIcon color="primary" ml="4px" />}
             </Link>
           )}
-          {currencyToAdd && (
+          {showAddToWalletButton && (
             <AddToWalletButton
               variant="tertiary"
               mt="12px"
@@ -72,7 +79,7 @@ export function TransactionSubmittedContent({
               marginTextBetweenLogo="6px"
               textOptions={AddToWalletTextOptions.TEXT_WITH_ASSET}
               tokenAddress={token?.address}
-              tokenSymbol={currencyToAdd.symbol}
+              tokenSymbol={currencyToAdd!.symbol}
               tokenDecimals={token?.decimals}
               tokenLogo={token instanceof WrappedTokenInfo ? token.logoURI : undefined}
             />
@@ -94,7 +101,7 @@ interface ConfirmationModalProps {
   content: () => React.ReactNode
   attemptingTxn: boolean
   pendingText: string
-  currencyToAdd?: Currency | undefined
+  currencyToAdd?: Currency | undefined | null
 }
 
 const TransactionConfirmationModal: React.FC<

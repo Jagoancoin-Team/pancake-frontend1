@@ -1,8 +1,7 @@
-import { useEffect } from 'react'
-import { useAccount } from 'wagmi'
 import { atom, useAtom } from 'jotai'
-
+import { useEffect } from 'react'
 import { datadogRum } from 'utils/datadog'
+import { useAccount } from 'wagmi'
 
 import { useGlobalSettingsEvaluation } from './useGlobalSettingsEvaluation'
 
@@ -30,10 +29,25 @@ export function useDataDogRUM() {
   }, [ready, address, setReady])
 
   useEffect(() => {
+    // @ts-ignore
+    if (ready && window?.ethereum?.isBinance) {
+      datadogRum.setGlobalContextProperty('wallet', 'Binance Web3 Wallet')
+    }
+
+    return () => {
+      datadogRum.removeGlobalContextProperty('wallet')
+    }
+  }, [ready])
+
+  useEffect(() => {
     if (ready && address) {
       datadogRum.setUser({
         id: address,
       })
+    }
+
+    return () => {
+      datadogRum.clearUser()
     }
   }, [ready, address])
 }
@@ -59,7 +73,7 @@ export function useFeatureFlagEvaluations(evaluations?: FeatureFlagEvaluation[])
   }, [ready, evaluations])
 }
 
-export function useFeatureFlagEvaluation(flagName: string, value?: boolean | string | number) {
+export function useFeatureFlagEvaluation(flagName: string, value?: boolean | string | number | bigint) {
   const ready = useDataDogRUMReady()
 
   useEffect(() => {

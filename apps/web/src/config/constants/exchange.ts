@@ -1,34 +1,36 @@
-import { Percent, Token, WNATIVE } from '@pancakeswap/sdk'
 import { ChainId } from '@pancakeswap/chains'
+import { Percent, Token, WNATIVE } from '@pancakeswap/sdk'
 import {
-  bscTokens,
-  bscTestnetTokens,
+  BUSD,
   USDC,
   USDT,
-  BUSD,
   WBTC_ETH,
-  arbitrumTokens,
-  polygonZkEvmTokens,
-  polygonZkEvmTestnetTokens,
-  zksyncTokens,
-  zkSyncTestnetTokens,
-  lineaTestnetTokens,
+  arbSepoliaTokens,
   arbitrumGoerliTokens,
-  opBnbTokens,
-  opBnbTestnetTokens,
-  baseTokens,
+  arbitrumTokens,
+  baseSepoliaTokens,
   baseTestnetTokens,
-  scrollSepoliaTokens,
+  baseTokens,
+  bscTestnetTokens,
+  bscTokens,
+  lineaTestnetTokens,
   lineaTokens,
+  opBnbTestnetTokens,
+  opBnbTokens,
+  polygonZkEvmTestnetTokens,
+  polygonZkEvmTokens,
+  scrollSepoliaTokens,
+  zkSyncTestnetTokens,
+  zksyncTokens,
 } from '@pancakeswap/tokens'
 import { ChainTokenList } from './types'
 
 export {
   ADDITIONAL_BASES,
-  V2_ROUTER_ADDRESS,
   BASES_TO_CHECK_TRADES_AGAINST,
   CUSTOM_BASES,
-} from '@pancakeswap/smart-router/evm'
+  V2_ROUTER_ADDRESS,
+} from '@pancakeswap/smart-router'
 
 export const CHAIN_REFRESH_TIME = {
   [ChainId.ETHEREUM]: 12_000,
@@ -48,6 +50,9 @@ export const CHAIN_REFRESH_TIME = {
   [ChainId.BASE]: 6_000,
   [ChainId.BASE_TESTNET]: 6_000,
   [ChainId.SCROLL_SEPOLIA]: 6_000,
+  [ChainId.SEPOLIA]: 12_000,
+  [ChainId.BASE_SEPOLIA]: 6_000,
+  [ChainId.ARBITRUM_SEPOLIA]: 6_000,
 } as const satisfies Record<ChainId, number>
 
 // used for display in the default list when adding liquidity
@@ -60,7 +65,7 @@ export const SUGGESTED_BASES: ChainTokenList = {
   [ChainId.ARBITRUM_GOERLI]: [arbitrumGoerliTokens.weth, arbitrumGoerliTokens.usdc],
   [ChainId.POLYGON_ZKEVM]: [polygonZkEvmTokens.weth, polygonZkEvmTokens.usdt, polygonZkEvmTokens.usdc],
   [ChainId.POLYGON_ZKEVM_TESTNET]: [polygonZkEvmTestnetTokens.weth, polygonZkEvmTestnetTokens.usdt],
-  [ChainId.ZKSYNC]: [zksyncTokens.usdc, zksyncTokens.weth],
+  [ChainId.ZKSYNC]: [zksyncTokens.usdcNative, zksyncTokens.usdc, zksyncTokens.weth],
   [ChainId.ZKSYNC_TESTNET]: [zkSyncTestnetTokens.usdc, zkSyncTestnetTokens.weth],
   [ChainId.LINEA]: [lineaTokens.usdc, lineaTokens.weth],
   [ChainId.LINEA_TESTNET]: [lineaTestnetTokens.usdc, lineaTestnetTokens.weth],
@@ -74,6 +79,9 @@ export const SUGGESTED_BASES: ChainTokenList = {
   [ChainId.BASE]: [baseTokens.usdc, baseTokens.weth],
   [ChainId.BASE_TESTNET]: [baseTestnetTokens.usdc, baseTestnetTokens.weth],
   [ChainId.SCROLL_SEPOLIA]: [scrollSepoliaTokens.usdc, scrollSepoliaTokens.weth],
+  [ChainId.SEPOLIA]: [scrollSepoliaTokens.usdc, scrollSepoliaTokens.weth],
+  [ChainId.ARBITRUM_SEPOLIA]: [arbSepoliaTokens.usdc, arbSepoliaTokens.weth],
+  [ChainId.BASE_SEPOLIA]: [baseSepoliaTokens.usdc, baseSepoliaTokens.weth],
 }
 
 // used to construct the list of all pairs we consider by default in the frontend
@@ -95,6 +103,9 @@ export const BASES_TO_TRACK_LIQUIDITY_FOR: ChainTokenList = {
   [ChainId.BASE]: [baseTokens.usdc, baseTokens.weth],
   [ChainId.BASE_TESTNET]: [baseTestnetTokens.usdc, baseTestnetTokens.weth],
   [ChainId.SCROLL_SEPOLIA]: [scrollSepoliaTokens.usdc, scrollSepoliaTokens.weth],
+  [ChainId.SEPOLIA]: [scrollSepoliaTokens.usdc, scrollSepoliaTokens.weth],
+  [ChainId.ARBITRUM_SEPOLIA]: [arbSepoliaTokens.usdc, arbSepoliaTokens.weth],
+  [ChainId.BASE_SEPOLIA]: [baseSepoliaTokens.usdc, baseSepoliaTokens.weth],
 }
 
 export const PINNED_PAIRS: { readonly [chainId in ChainId]?: [Token, Token][] } = {
@@ -161,4 +172,4 @@ export const GENERIC_GAS_LIMIT_ORDER_EXECUTION = 500000n
 
 export const LIMIT_ORDERS_DOCS_URL = 'https://docs.pancakeswap.finance/products/pancakeswap-exchange/limit-orders'
 
-export const EXCHANGE_PAGE_PATHS = ['/swap', '/limit-orders', 'liquidity', '/add', '/find', '/remove']
+export const EXCHANGE_PAGE_PATHS = ['/swap', '/limit-orders', 'liquidity', '/add', '/find', '/remove', '/stable', '/v2']

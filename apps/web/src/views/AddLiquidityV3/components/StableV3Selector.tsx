@@ -1,14 +1,14 @@
-import { useState, useMemo, useEffect } from 'react'
-import { AutoColumn, Message, MessageText, Text } from '@pancakeswap/uikit'
 import { useTranslation } from '@pancakeswap/localization'
+import { AutoColumn, Message, MessageText, Text } from '@pancakeswap/uikit'
+import { useEffect, useMemo, useState } from 'react'
 
+import { Currency } from '@pancakeswap/sdk'
 import { FeeAmount } from '@pancakeswap/v3-sdk'
+import { EvenWidthAutoRow } from 'components/Layout/EvenWidthAutoRow'
+import { SelectButton } from 'components/SelectButton'
+import { PoolState } from 'hooks/v3/types'
 import { useFeeTierDistribution } from 'hooks/v3/useFeeTierDistribution'
 import { usePools } from 'hooks/v3/usePools'
-import { PoolState } from 'hooks/v3/types'
-import { SelectButton } from 'components/SelectButton'
-import { EvenWidthAutoRow } from 'components/Layout/EvenWidthAutoRow'
-import { Currency } from '@pancakeswap/sdk'
 
 import { useActiveChainId } from 'hooks/useActiveChainId'
 import { FeeOption } from '../formViews/V3FormView/components/FeeOption'
@@ -25,15 +25,15 @@ export function StableV3Selector({
 }: {
   selectorType: SELECTOR_TYPE
   feeAmount?: FeeAmount
-  currencyA: Currency
-  currencyB: Currency
+  currencyA?: Currency | null
+  currencyB?: Currency | null
   handleFeePoolSelect: HandleFeePoolSelectFn
 }) {
   const { t } = useTranslation()
   const [showOptions, setShowOptions] = useState(false)
   const { chainId } = useActiveChainId()
 
-  const { isLoading, isError, largestUsageFeeTier, distributions } = useFeeTierDistribution(currencyA, currencyB)
+  const { isPending, isError, largestUsageFeeTier, distributions } = useFeeTierDistribution(currencyA, currencyB)
 
   const pools = usePools(
     useMemo(
@@ -47,7 +47,7 @@ export function StableV3Selector({
     ),
   )
 
-  const poolsByFeeTier: Record<FeeAmount, PoolState> = useMemo(
+  const poolsByFeeTier = useMemo(
     () =>
       pools.reduce(
         (acc, [curPoolState, curPool]) => {
@@ -62,13 +62,13 @@ export function StableV3Selector({
           [FeeAmount.LOW]: PoolState.NOT_EXISTS,
           [FeeAmount.MEDIUM]: PoolState.NOT_EXISTS,
           [FeeAmount.HIGH]: PoolState.NOT_EXISTS,
-        },
+        } as Record<FeeAmount, PoolState>,
       ),
     [pools],
   )
 
   useEffect(() => {
-    if (feeAmount || isLoading || isError) {
+    if (feeAmount || isPending || isError || selectorType === SELECTOR_TYPE.STABLE) {
       return
     }
 
@@ -83,7 +83,7 @@ export function StableV3Selector({
         feeAmount: largestUsageFeeTier,
       })
     }
-  }, [feeAmount, isLoading, isError, largestUsageFeeTier, handleFeePoolSelect])
+  }, [feeAmount, isPending, isError, largestUsageFeeTier, handleFeePoolSelect, selectorType])
 
   return (
     <HideShowSelectorSection
@@ -94,18 +94,16 @@ export function StableV3Selector({
           <AutoColumn>
             <Text>StableSwap LP</Text>
           </AutoColumn>
-        ) : (
-          FEE_AMOUNT_DETAIL[FeeAmount.LOWEST]?.supportedChains.includes(chainId) && (
-            <AutoColumn>
-              <Text>
-                V3 LP{' '}
-                {FEE_AMOUNT_DETAIL[feeAmount]?.label
-                  ? `- ${FEE_AMOUNT_DETAIL[feeAmount]?.label}% ${t('fee tier')}`
-                  : ''}
-              </Text>
-            </AutoColumn>
-          )
-        )
+        ) : chainId && FEE_AMOUNT_DETAIL[FeeAmount.LOWEST]?.supportedChains.includes(chainId) ? (
+          <AutoColumn>
+            <Text>
+              V3 LP{' '}
+              {feeAmount && FEE_AMOUNT_DETAIL[feeAmount]?.label
+                ? `- ${FEE_AMOUNT_DETAIL[feeAmount]?.label}% ${t('fee tier')}`
+                : ''}
+            </Text>
+          </AutoColumn>
+        ) : null
       }
       content={
         <AutoColumn gap="8px">
@@ -116,7 +114,7 @@ export function StableV3Selector({
             >
               StableSwap LP
             </SelectButton>
-            {FEE_AMOUNT_DETAIL[FeeAmount.LOWEST]?.supportedChains.includes(chainId) && (
+            {chainId && FEE_AMOUNT_DETAIL[FeeAmount.LOWEST]?.supportedChains.includes(chainId) && (
               <SelectButton
                 isActive={selectorType === SELECTOR_TYPE.V3}
                 onClick={() => handleFeePoolSelect({ type: SELECTOR_TYPE.V3 })}
@@ -129,7 +127,7 @@ export function StableV3Selector({
             <SelectContainer>
               {[FeeAmount.LOWEST, FeeAmount.LOW, FeeAmount.MEDIUM, FeeAmount.HIGH].map((_feeAmount) => {
                 const { supportedChains } = FEE_AMOUNT_DETAIL[_feeAmount]
-                if (supportedChains.includes(chainId)) {
+                if (chainId && supportedChains.includes(chainId)) {
                   return (
                     <FeeOption
                       feeAmount={_feeAmount}

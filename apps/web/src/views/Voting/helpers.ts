@@ -6,10 +6,9 @@ import fromPairs from 'lodash/fromPairs'
 import groupBy from 'lodash/groupBy'
 import { Proposal, ProposalState, ProposalType, Vote } from 'state/types'
 import { getCakeVaultAddress } from 'utils/addressHelpers'
-import { createPublicClient, http } from 'viem'
+import { Address, createPublicClient, http } from 'viem'
 import { bsc } from 'viem/chains'
 import { convertSharesToCake } from 'views/Pools/helpers'
-import { Address } from 'wagmi'
 import { ADMINS, PANCAKE_SPACE, SNAPSHOT_VERSION } from './config'
 import { getScores } from './getScores'
 import * as strategies from './strategies'
@@ -242,7 +241,7 @@ export const calculateVoteResults = (votes: Vote[]): { [key: string]: Vote[] } =
 export const getTotalFromVotes = (votes: Vote[]) => {
   if (votes) {
     return votes.reduce((accum, vote) => {
-      let power = parseFloat(vote.metadata?.votingPower)
+      let power = parseFloat(vote.metadata?.votingPower || '0')
 
       if (!power) {
         power = 0
@@ -263,7 +262,7 @@ export async function getVotingPowerByCakeStrategy(voters: string[], blockNumber
   const result = fromPairs(
     voters.map((voter) => {
       const defaultTotal = strategyResponse.reduce(
-        (total, scoreList) => total + (scoreList[voter] ? scoreList[voter] : 0),
+        (total: any, scoreList: any) => total + (scoreList[voter] ? scoreList[voter] : 0),
         0,
       )
 

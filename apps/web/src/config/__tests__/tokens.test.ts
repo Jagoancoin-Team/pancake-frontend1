@@ -2,9 +2,9 @@ import { ERC20Token, Token } from '@pancakeswap/sdk'
 import { bscTokens, ethereumTokens } from '@pancakeswap/tokens'
 import omitBy from 'lodash/omitBy'
 import slice from 'lodash/slice'
-import { publicClient } from 'utils/client'
+import { publicClient } from 'utils/wagmi'
+import { erc20Abi } from 'viem'
 import { describe, it } from 'vitest'
-import { erc20ABI } from 'wagmi'
 
 const whitelist = ['deprecated_tusd', 'deprecated_rpg', 'deprecated_mix']
 
@@ -38,12 +38,12 @@ describe.concurrent(
         const [symbol, decimals] = await client.multicall({
           contracts: [
             {
-              abi: erc20ABI,
+              abi: erc20Abi,
               address: token.address,
               functionName: 'symbol',
             },
             {
-              abi: erc20ABI,
+              abi: erc20Abi,
               address: token.address,
               functionName: 'decimals',
             },
@@ -53,7 +53,7 @@ describe.concurrent(
 
         const isWhitelisted = whitelist.includes(key.toLowerCase())
         if (!isWhitelisted) expect(key.toLowerCase()).toBe(token.symbol.toLowerCase())
-        if (!isWhitelisted) expect(token.symbol.toLocaleLowerCase()).toBe(symbol.toLocaleLowerCase())
+        if (!isWhitelisted) expect(token.symbol.toLowerCase()).toBe(symbol.toLowerCase())
         expect(token.decimals).toBe(decimals)
       },
     )

@@ -23,7 +23,8 @@ import { useGasPrice } from 'state/user/hooks'
 import { calculateGasMargin } from 'utils'
 import { calculateSlippageAmount } from 'utils/exchange'
 import { maxAmountSpend } from 'utils/maxAmountSpend'
-import { SendTransactionResult } from 'wagmi/actions'
+import { Address } from 'viem'
+
 import ConfirmAddLiquidityModal from '../components/ConfirmAddLiquidityModal'
 
 import { useDerivedLPInfo } from './hooks/useDerivedLPInfo'
@@ -31,7 +32,7 @@ import { StablePair, useStableLPDerivedMintInfo } from './hooks/useStableLPDeriv
 import { warningSeverity } from './utils/slippage'
 
 export interface AddStableChildrenProps {
-  noLiquidity: boolean
+  noLiquidity?: boolean
   formattedAmounts: {
     [Field.CURRENCY_A]?: string
     [Field.CURRENCY_B]?: string
@@ -44,24 +45,24 @@ export interface AddStableChildrenProps {
     [Field.CURRENCY_B]?: Currency
   }
   pairState: PairState
-  poolTokenPercentage: Percent
-  price: Price<Currency, Currency>
-  executionSlippage: Percent
+  poolTokenPercentage?: Percent
+  price: Price<Currency, Currency> | null
+  executionSlippage?: Percent
   loading: boolean
-  infoLoading: boolean
+  infoLoading?: boolean
   allowedSlippage: number
-  stableAPR: number
+  stableAPR?: number
   shouldShowApprovalGroup: boolean
   showFieldAApproval: boolean
-  approveACallback: () => Promise<SendTransactionResult>
+  approveACallback: () => Promise<{ hash: Address } | undefined>
   approvalA: ApprovalState
   showFieldBApproval: boolean
   approvalB: ApprovalState
-  approveBCallback: () => Promise<SendTransactionResult>
+  approveBCallback: () => Promise<{ hash: Address } | undefined>
   onAdd: () => Promise<void>
   onPresentAddLiquidityModal: () => void
   buttonDisabled: boolean
-  errorText: string
+  errorText?: string
   setLiquidityState: Dispatch<
     SetStateAction<{
       attemptingTxn: boolean
@@ -70,7 +71,7 @@ export interface AddStableChildrenProps {
     }>
   >
   reserves: readonly [bigint, bigint]
-  pair: StablePair
+  pair?: StablePair | null
 }
 
 export default function AddStableLiquidity({
@@ -78,8 +79,8 @@ export default function AddStableLiquidity({
   currencyB,
   children,
 }: {
-  currencyA: Currency
-  currencyB: Currency
+  currencyA?: Currency | null
+  currencyB?: Currency | null
   children: (props: AddStableChildrenProps) => ReactElement
 }) {
   const { account, chainId } = useAccountActiveChain()
@@ -138,12 +139,12 @@ export default function AddStableLiquidity({
   )
   const executionSlippage = useMemo(() => {
     if (!liquidityMinted || !expectedOutputWithoutFee) {
-      return null
+      return undefined
     }
     return ONE_HUNDRED_PERCENT.subtract(new Percent(liquidityMinted.quotient, expectedOutputWithoutFee.quotient))
   }, [liquidityMinted, expectedOutputWithoutFee])
 
-  const slippageSeverity = warningSeverity(executionSlippage)
+  const slippageSeverity = executionSlippage && warningSeverity(executionSlippage)
 
   // get the max amounts user can add
   const maxAmounts: { [field in Field]?: CurrencyAmount<Token> } = [Field.CURRENCY_A, Field.CURRENCY_B].reduce(
@@ -165,7 +166,7 @@ export default function AddStableLiquidity({
     [dependentField, independentField, otherTypedValue, typedValue],
   )
 
-  const { stableSwapContract, stableSwapConfig } = useContext(StableConfigContext)
+  const { stableSwapContract, stableSwapConfig } = useContext(StableConfigContext) || {}
   const stableAPR = useStableSwapAPR(stableSwapContract?.address)
 
   const needWrapped = currencyA?.isNative || currencyB?.isNative
@@ -196,7 +197,8 @@ export default function AddStableLiquidity({
       return
     }
 
-    const lpMintedSlippage = calculateSlippageAmount(liquidityMinted, noLiquidity ? 0 : allowedSlippage)[0]
+    const lpMintedSlippage =
+      liquidityMinted && calculateSlippageAmount(liquidityMinted, noLiquidity ? 0 : allowedSlippage)[0]
 
     const quotientA = parsedAmountA?.quotient || 0n
     const quotientB = parsedAmountB?.quotient || 0n
@@ -209,12 +211,16 @@ export default function AddStableLiquidity({
 
     let args_
 
-    let value_: bigint | null = null
+    let value_: bigint | undefined
     let call: Promise<`0x${string}`>
+
     if (needWrapped) {
-      const args = [stableSwapContract.address, tokenAmounts, minLPOutput || lpMintedSlippage] as const
+      if (!stableSwapContract) {
+        return
+      }
+      const args = [stableSwapContract.address, tokenAmounts, (minLPOutput || lpMintedSlippage)!] as const
       args_ = args
-      const value = (currencyB?.isNative ? parsedAmountB : parsedAmountA).quotient
+      const value = (currencyB?.isNative ? parsedAmountB : parsedAmountA)?.quotient
       value_ = value
       call = nativeHelperContract.estimateGas
         .add_liquidity(
@@ -222,7 +228,7 @@ export default function AddStableLiquidity({
           // @ts-ignore
           {
             value,
-            account: contract.account,
+            account: contract.account!,
           },
         )
         .then((estimatedGasLimit) => {
@@ -230,25 +236,28 @@ export default function AddStableLiquidity({
             gas: calculateGasMargin(estimatedGasLimit),
             gasPrice,
             value,
-            account: contract.account,
+            account: contract.account!,
             chain: contract.chain,
           })
         })
     } else {
-      const args = [tokenAmounts, minLPOutput || lpMintedSlippage] as const
+      const args = [tokenAmounts, (minLPOutput || lpMintedSlippage)!] as const
       args_ = args
+      if (!stableSwapContract || !contract.account) {
+        return
+      }
+
+      const contractAccount = contract.account
+
       call = stableSwapContract.estimateGas
-        .add_liquidity(
-          args, // @ts-ignore
-          {
-            account: contract.account,
-          },
-        )
+        .add_liquidity(args, {
+          account: contractAccount!,
+        })
         .then((estimatedGasLimit) => {
           return stableSwapContract.write.add_liquidity(args, {
             gas: calculateGasMargin(estimatedGasLimit),
             gasPrice,
-            account: contract.account,
+            account: contractAccount,
             chain: contract.chain,
           })
         })
@@ -348,7 +357,7 @@ export default function AddStableLiquidity({
     (parsedAmountA?.greaterThan(0) && approvalA !== ApprovalState.APPROVED) ||
     (parsedAmountB?.greaterThan(0) && approvalB !== ApprovalState.APPROVED)
 
-  const buttonDisabled = !isValid || notApprovalYet || (slippageSeverity > 2 && !expertMode)
+  const buttonDisabled = !isValid || notApprovalYet || (!!slippageSeverity && slippageSeverity > 2 && !expertMode)
 
   const showFieldAApproval = approvalA === ApprovalState.NOT_APPROVED || approvalA === ApprovalState.PENDING
   const showFieldBApproval = approvalB === ApprovalState.NOT_APPROVED || approvalB === ApprovalState.PENDING

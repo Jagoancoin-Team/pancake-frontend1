@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react'
-import Script from 'next/script'
-import { styled, useTheme } from 'styled-components'
-import { Flex, Box } from '@pancakeswap/uikit'
-import { LAYER_ZERO_JS, FEE_COLLECTOR, FEE_TENTH_BPS, PARTNER_ID } from 'components/layerZero/config'
-import { LayerZeroWidget } from 'components/layerZero/LayerZeroWidget'
+import { Box, Flex, Message, MessageText } from '@pancakeswap/uikit'
 import AptosBridgeFooter from 'components/layerZero/AptosBridgeFooter'
+import { LayerZeroWidget } from 'components/layerZero/LayerZeroWidget'
+import { FEE_COLLECTOR, FEE_TENTH_BPS, LAYER_ZERO_JS, PARTNER_ID } from 'components/layerZero/config'
+import Script from 'next/script'
+import { useEffect, useState } from 'react'
+import { styled, useTheme } from 'styled-components'
 import { PancakeSwapTheme } from './theme'
 
 declare global {
@@ -52,19 +52,24 @@ const LayerZero = ({ isCake }: { isCake?: boolean }) => {
 
       if (isCake) {
         setTimeout(async () => {
-          const app: any = await customElements.whenDefined('lz-bridge')
-          const length = app?.bridgeStore?.currencies?.length
-          if (length !== null || length !== undefined) {
-            const currencies = app?.bridgeStore?.currencies?.slice()
-            // @ts-ignore
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-            app!.bridgeStore!.currencies.length = 0
-            app?.bridgeStore?.addCurrencies(currencies?.filter((i) => i.symbol.toLowerCase() === 'cake'))
+          try {
+            await customElements.whenDefined('lz-bridge')
+            const app: any = customElements.get('lz-bridge')
+            const length = app?.bridgeStore?.currencies?.length
+            if (length !== null || length !== undefined) {
+              const currencies = app?.bridgeStore?.currencies?.slice()
+              // @ts-ignore
+              // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+              app!.bridgeStore!.currencies.length = 0
+              app?.bridgeStore?.addCurrencies(currencies?.filter((i: any) => i.symbol.toLowerCase() === 'cake'))
 
-            const srcCake = app?.bridgeStore?.currencies?.find(
-              (i) => i.symbol.toUpperCase() === 'CAKE' && i.chainId === 102,
-            )
-            app?.bridgeStore?.setSrcCurrency(srcCake)
+              const srcCake = app?.bridgeStore?.currencies?.find(
+                (i: any) => i.symbol.toUpperCase() === 'CAKE' && i.chainId === 102,
+              )
+              app?.bridgeStore?.setSrcCurrency(srcCake)
+            }
+          } catch (error) {
+            console.error('Failed to load lz-bridge', error)
           }
         }, 800)
       }
@@ -79,6 +84,11 @@ const LayerZero = ({ isCake }: { isCake?: boolean }) => {
       <link rel="stylesheet" href={`${LAYER_ZERO_JS.css}`} />
       {show && (
         <Box width={['100%', null, '420px']} m="auto">
+          <Message variant="warning" m={['16px', '16px', '0 0 16px 0']}>
+            <MessageText>
+              Outbound transfers from Polygon zkEVM are subject to a 7 days delay for block confirmations.
+            </MessageText>
+          </Message>
           <Flex flexDirection="column" bg="backgroundAlt" borderRadius={[0, null, 24]} alignItems="center">
             <LayerZeroWidget theme={theme} />
             <Box display={['block', null, 'none']}>

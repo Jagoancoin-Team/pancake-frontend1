@@ -1,11 +1,12 @@
 import { ChainId } from '@pancakeswap/chains'
+import { useActiveChainId } from 'hooks/useActiveChainId'
 import { useSidNameForAddress } from 'hooks/useSid'
 import { useUnsNameForAddress } from 'hooks/useUns'
 import { useMemo } from 'react'
-import { useEnsAvatar, useEnsName, Address } from 'wagmi'
-import { useActiveChainId } from 'hooks/useActiveChainId'
+import { Address } from 'viem'
+import { useEnsAvatar, useEnsName } from 'wagmi'
 
-export const useDomainNameForAddress = (address: `0x${string}` | string, fetchData = true) => {
+export const useDomainNameForAddress = (address?: `0x${string}` | string, fetchData = true) => {
   const { chainId } = useActiveChainId()
   const { sidName, isLoading: isSidLoading } = useSidNameForAddress(address as Address, fetchData)
   const { unsName, isLoading: isUnsLoading } = useUnsNameForAddress(
@@ -15,12 +16,16 @@ export const useDomainNameForAddress = (address: `0x${string}` | string, fetchDa
   const { data: ensName, isLoading: isEnsLoading } = useEnsName({
     address: address as Address,
     chainId: chainId === ChainId.GOERLI ? ChainId.GOERLI : ChainId.ETHEREUM,
-    enabled: chainId !== ChainId.BSC && chainId !== ChainId.BSC_TESTNET,
+    query: {
+      enabled: chainId !== ChainId.BSC && chainId !== ChainId.BSC_TESTNET,
+    },
   })
   const { data: ensAvatar, isLoading: isEnsAvatarLoading } = useEnsAvatar({
-    name: ensName,
+    name: ensName as string,
     chainId: chainId === ChainId.GOERLI ? ChainId.GOERLI : ChainId.ETHEREUM,
-    enabled: chainId !== ChainId.BSC && chainId !== ChainId.BSC_TESTNET,
+    query: {
+      enabled: chainId !== ChainId.BSC && chainId !== ChainId.BSC_TESTNET,
+    },
   })
 
   return useMemo(() => {

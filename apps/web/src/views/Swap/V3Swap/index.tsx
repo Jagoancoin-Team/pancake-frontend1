@@ -1,72 +1,69 @@
 import { SmartRouter } from '@pancakeswap/smart-router/evm'
-import throttle from 'lodash/throttle'
-import { useMemo } from 'react'
 import { Box } from '@pancakeswap/uikit'
-
-import { shouldShowMMLiquidityError } from 'views/Swap/MMLinkPools/utils/exchange'
+import { useMemo } from 'react'
 import { MMLiquidityWarning } from 'views/Swap/MMLinkPools/components/MMLiquidityWarning'
-
-import { useDerivedBestTradeWithMM } from '../MMLinkPools/hooks/useDerivedSwapInfoWithMM'
+import { shouldShowMMLiquidityError } from 'views/Swap/MMLinkPools/utils/exchange'
+import { BuyCryptoLink, FormHeader, FormMain, MMTradeDetail, PricingAndSlippage, TradeDetails } from './containers'
+import { CommitButton } from './containers/CommitButton'
+import { useAllTypeBestTrade } from './hooks/useAllTypeBestTrade'
 import { useCheckInsufficientError } from './hooks/useCheckSufficient'
-import {
-  FormHeader,
-  FormMain,
-  MMTradeDetail,
-  PricingAndSlippage,
-  SwapCommitButton,
-  TradeDetails,
-  BuyCryptoLink,
-} from './containers'
-import { MMCommitButton } from './containers/MMCommitButton'
-import { useSwapBestTrade } from './hooks'
 
 export function V3SwapForm() {
-  const { isLoading, trade, refresh, syncing, isStale, error } = useSwapBestTrade()
-  const mm = useDerivedBestTradeWithMM(trade)
-  const throttledHandleRefresh = useMemo(
-    () =>
-      throttle(() => {
-        refresh()
-      }, 3000),
-    [refresh],
-  )
+  const {
+    bestTrade,
+    ammTrade,
+    mmTrade,
+    isMMBetter,
+    tradeError,
+    tradeLoaded,
+    refreshTrade,
+    refreshDisabled,
+    pauseQuoting,
+    resumeQuoting,
+  } = useAllTypeBestTrade()
 
-  const finalTrade = mm.isMMBetter ? mm?.mmTradeInfo?.trade : trade
-
-  const tradeLoaded = !isLoading
-  const price = useMemo(() => trade && SmartRouter.getExecutionPrice(trade), [trade])
-
-  const insufficientFundCurrency = useCheckInsufficientError(trade)
+  const ammPrice = useMemo(() => (ammTrade ? SmartRouter.getExecutionPrice(ammTrade) : undefined), [ammTrade])
+  const insufficientFundCurrency = useCheckInsufficientError(ammTrade)
+  const commitHooks = useMemo(() => {
+    return {
+      beforeCommit: pauseQuoting,
+      afterCommit: resumeQuoting,
+    }
+  }, [pauseQuoting, resumeQuoting])
 
   return (
     <>
-      <FormHeader onRefresh={throttledHandleRefresh} refreshDisabled={!tradeLoaded || syncing || !isStale} />
+      <FormHeader onRefresh={refreshTrade} refreshDisabled={refreshDisabled} />
       <FormMain
-        tradeLoading={mm.isMMBetter ? false : !tradeLoaded}
-        pricingAndSlippage={<PricingAndSlippage priceLoading={isLoading} price={price} showSlippage={!mm.isMMBetter} />}
-        inputAmount={finalTrade?.inputAmount}
-        outputAmount={finalTrade?.outputAmount}
+        tradeLoading={isMMBetter ? false : !tradeLoaded}
+        pricingAndSlippage={
+          <PricingAndSlippage priceLoading={!tradeLoaded} price={ammPrice ?? undefined} showSlippage={!isMMBetter} />
+        }
+        inputAmount={bestTrade?.inputAmount}
+        outputAmount={bestTrade?.outputAmount}
         swapCommitButton={
-          mm?.isMMBetter ? (
-            <MMCommitButton {...mm} />
-          ) : (
-            <SwapCommitButton trade={trade} tradeError={error} tradeLoading={!tradeLoaded} />
-          )
+          <CommitButton
+            trade={isMMBetter ? mmTrade : ammTrade}
+            tradeError={tradeError}
+            tradeLoaded={tradeLoaded}
+            {...commitHooks}
+          />
         }
       />
 
       <BuyCryptoLink currency={insufficientFundCurrency} />
 
-      {mm.isMMBetter ? (
-        <MMTradeDetail loaded={!mm.mmOrderBookTrade.isLoading} mmTrade={mm.mmTradeInfo} />
+      {isMMBetter ? (
+        <MMTradeDetail loaded={!mmTrade.mmOrderBookTrade.isLoading} mmTrade={mmTrade.mmTradeInfo} />
       ) : (
-        <TradeDetails loaded={tradeLoaded} trade={trade} />
+        <TradeDetails loaded={tradeLoaded} trade={ammTrade} />
       )}
-      {(shouldShowMMLiquidityError(mm?.mmOrderBookTrade?.inputError) || mm?.mmRFQTrade?.error) && !trade && (
-        <Box mt="5px">
-          <MMLiquidityWarning />
-        </Box>
-      )}
+      {(shouldShowMMLiquidityError(mmTrade?.mmOrderBookTrade?.inputError) || mmTrade?.mmRFQTrade?.error) &&
+        !ammTrade && (
+          <Box mt="5px">
+            <MMLiquidityWarning />
+          </Box>
+        )}
     </>
   )
 }

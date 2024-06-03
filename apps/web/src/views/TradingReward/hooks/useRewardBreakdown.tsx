@@ -1,10 +1,10 @@
 import { ChainId } from '@pancakeswap/chains'
-import { useAccount } from 'wagmi'
 import { Token } from '@pancakeswap/swap-sdk-core'
-import { tradingRewardPairConfigChainMap } from 'views/TradingReward/config/pairs'
-import { UserCampaignInfoDetail } from 'views/TradingReward/hooks/useAllUserCampaignInfo'
-import { AllTradingRewardPairDetail } from 'views/TradingReward/hooks/useAllTradingRewardPair'
 import { useQuery } from '@tanstack/react-query'
+import { tradingRewardPairConfigChainMap } from 'views/TradingReward/config/pairs'
+import { AllTradingRewardPairDetail } from 'views/TradingReward/hooks/useAllTradingRewardPair'
+import { UserCampaignInfoDetail } from 'views/TradingReward/hooks/useAllUserCampaignInfo'
+import { useAccount } from 'wagmi'
 
 interface UseRewardBreakdownProps {
   allUserCampaignInfo: UserCampaignInfoDetail[]
@@ -22,6 +22,7 @@ export interface RewardBreakdownPair {
   rewardEarned: number
   yourTradingFee: string
   feeAmount: number
+  preCap: number
 }
 
 export interface RewardBreakdownDetail {
@@ -43,13 +44,14 @@ const useRewardBreakdown = ({
 }: UseRewardBreakdownProps): RewardBreakdown => {
   const { address: account } = useAccount()
 
-  const { data: rewardBreakdownList, isLoading } = useQuery(
-    ['tradingReward', 'rewards-breakdown', allUserCampaignInfo, allTradingRewardPairData, account],
-    async () => {
+  const { data: rewardBreakdownList, isPending } = useQuery({
+    queryKey: ['tradingReward', 'rewards-breakdown', allUserCampaignInfo, allTradingRewardPairData, account],
+
+    queryFn: async () => {
       try {
         const dataInfo = Object.keys(campaignPairs).map((campaignId) => {
           const incentive = allTradingRewardPairData.campaignIdsIncentive.find(
-            (i) => i.campaignId.toLowerCase() === campaignId.toLowerCase(),
+            (i) => i.campaignId!.toLowerCase() === campaignId.toLowerCase(),
           )
 
           const pairs = Object.keys(campaignPairs?.[campaignId]).map((campaignChainId) => {
@@ -72,6 +74,7 @@ const useRewardBreakdown = ({
                 rewardEarned: userData?.estimateRewardUSD ?? 0,
                 yourTradingFee: userData?.tradingFee ?? '0',
                 feeAmount: pairInfo?.feeAmount ?? 0,
+                preCap: userData?.preCap ?? 0,
               }
             })
 
@@ -94,14 +97,13 @@ const useRewardBreakdown = ({
         return []
       }
     },
-    {
-      initialData: [],
-      enabled: Boolean(account),
-    },
-  )
+
+    initialData: [],
+    enabled: Boolean(account),
+  })
 
   return {
-    isFetching: isLoading,
+    isFetching: isPending,
     data: rewardBreakdownList,
   }
 }

@@ -34,12 +34,14 @@ import AccessRiskTooltips from 'components/AccessRisk/AccessRiskTooltips'
 import { useActiveChainId } from 'hooks/useActiveChainId'
 import useTheme from 'hooks/useTheme'
 import { useWebNotifications } from 'hooks/useWebNotifications'
-import { ReactNode, lazy, useCallback, useState, Suspense } from 'react'
+import { ReactNode, Suspense, lazy, useCallback, useState } from 'react'
 import { useSwapActionHandlers } from 'state/swap/useSwapActionHandlers'
 import { useSubgraphHealthIndicatorManager, useUserUsernameVisibility } from 'state/user/hooks'
+import { useUserShowTestnet } from 'state/user/hooks/useUserShowTestnet'
 import { useUserTokenRisk } from 'state/user/hooks/useUserTokenRisk'
-import { useMMLinkedPoolByDefault } from 'state/user/mmLinkedPool'
+import { useSpeedQuote } from 'hooks/useSpeedQuote'
 import {
+  useMMLinkedPoolByDefault,
   useOnlyOneAMMSourceEnabled,
   useRoutingSettingChanged,
   useUserSplitRouteEnable,
@@ -104,8 +106,10 @@ const SettingsModal: React.FC<React.PropsWithChildren<InjectedModalProps>> = ({ 
   const [showExpertModeAcknowledgement, setShowExpertModeAcknowledgement] = useUserExpertModeAcknowledgement()
   const [expertMode, setExpertMode] = useExpertMode()
   const [audioPlay, setAudioMode] = useAudioPlay()
+  const [speedQuote, setSpeedQuote] = useSpeedQuote()
   const [subgraphHealth, setSubgraphHealth] = useSubgraphHealthIndicatorManager()
   const [userUsernameVisibility, setUserUsernameVisibility] = useUserUsernameVisibility()
+  const [showTestnet, setShowTestnet] = useUserShowTestnet()
   const { enabled } = useWebNotifications()
 
   const { onChangeRecipient } = useSwapActionHandlers()
@@ -185,7 +189,7 @@ const SettingsModal: React.FC<React.PropsWithChildren<InjectedModalProps>> = ({ 
                   <Text>{t('Allow notifications')}</Text>
                   <QuestionHelper
                     text={t(
-                      'Enables the web notifications feature. if turned off you will be automatically unsubscribed and the notification bell will not be visible',
+                      'Enables the web notifications feature. If turned off you will be automatically unsubscribed and the notification bell will not be visible',
                     )}
                     placement="top"
                     ml="4px"
@@ -195,6 +199,19 @@ const SettingsModal: React.FC<React.PropsWithChildren<InjectedModalProps>> = ({ 
                 <Suspense fallback={null}>
                   <WebNotiToggle enabled={enabled} />
                 </Suspense>
+              </Flex>
+              <Flex justifyContent="space-between" alignItems="center" mb="24px">
+                <Flex alignItems="center">
+                  <Text>{t('Show testnet')}</Text>
+                </Flex>
+                <Toggle
+                  id="toggle-show-testnet"
+                  checked={showTestnet}
+                  scale="md"
+                  onChange={() => {
+                    setShowTestnet((s) => !s)
+                  }}
+                />
               </Flex>
               {chainId === ChainId.BSC && (
                 <>
@@ -264,7 +281,28 @@ const SettingsModal: React.FC<React.PropsWithChildren<InjectedModalProps>> = ({ 
                   ml="4px"
                 />
               </Flex>
-              <PancakeToggle checked={audioPlay} onChange={() => setAudioMode((s) => !s)} scale="md" />
+              <PancakeToggle
+                id="toggle-audio-play"
+                checked={audioPlay}
+                onChange={() => setAudioMode((s) => !s)}
+                scale="md"
+              />
+            </Flex>
+            <Flex justifyContent="space-between" alignItems="center" mb="24px">
+              <Flex alignItems="center">
+                <Text>{t('Fast routing (BETA)')}</Text>
+                <QuestionHelper
+                  text={t('Increase the speed of finding best swapping routes')}
+                  placement="top"
+                  ml="4px"
+                />
+              </Flex>
+              <PancakeToggle
+                id="toggle-speed-quote"
+                checked={speedQuote}
+                onChange={() => setSpeedQuote((s) => !s)}
+                scale="md"
+              />
             </Flex>
             <RoutingSettingsButton />
           </>
@@ -288,6 +326,7 @@ export function RoutingSettingsButton({
   const [show, setShow] = useState(false)
   const { t } = useTranslation()
   const [isRoutingSettingChange] = useRoutingSettingChanged()
+  const handleDismiss = useCallback(() => setShow(false), [])
   return (
     <>
       <AtomBox textAlign="center">
@@ -297,7 +336,7 @@ export function RoutingSettingsButton({
           </Button>
         </NotificationDot>
       </AtomBox>
-      <ModalV2 isOpen={show} onDismiss={() => setShow(false)} closeOnOverlayClick>
+      <ModalV2 isOpen={show} onDismiss={handleDismiss} closeOnOverlayClick>
         <RoutingSettings />
       </ModalV2>
     </>

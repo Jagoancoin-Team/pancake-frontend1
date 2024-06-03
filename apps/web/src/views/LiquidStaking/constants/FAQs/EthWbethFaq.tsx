@@ -1,5 +1,6 @@
 import { Trans } from '@pancakeswap/localization'
-import { Link, LinkExternal } from '@pancakeswap/uikit'
+import { LinkExternal, StyledLink } from '@pancakeswap/uikit'
+import NextLink from 'next/link'
 
 export const EthWbethFaq = () => [
   {
@@ -22,7 +23,7 @@ export const EthWbethFaq = () => [
           Post-merge, the APR is hovering at around 3-5% for Ethereum validators. For wBETH, the daily APR is published
           by the Binance Earn team
         </Trans>
-        <LinkExternal style={{ display: 'inline-flex' }} href="https://www.binance.com/en/eth2">
+        <LinkExternal ml="4px" style={{ display: 'inline-flex' }} href="https://www.binance.com/en/eth2">
           <Trans>here.</Trans>
         </LinkExternal>
       </>
@@ -73,9 +74,11 @@ export const EthWbethFaq = () => [
     description: (
       <>
         <Trans>You can convert wBETH to ETH through</Trans>
-        <Link m="0 4px" style={{ display: 'inline' }} href="/swap">
-          <Trans>our swap page</Trans>.
-        </Link>
+        <NextLink href="/swap">
+          <StyledLink color="primary" m="0 4px" style={{ display: 'inline' }}>
+            <Trans>our swap page</Trans>.
+          </StyledLink>
+        </NextLink>
         <Trans>
           PancakeSwap is also working to support a conversion contract on our liquid staking page to convert wBETH back
           to ETH seamlessly.

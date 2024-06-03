@@ -1,29 +1,29 @@
 import {
-  Button,
-  Flex,
   Box,
-  Modal,
-  Text,
-  ChevronRightIcon,
-  InjectedModalProps,
-  Tag,
-  useMatchBreakpoints,
   BscScanIcon,
+  Button,
+  ChevronRightIcon,
+  Flex,
+  InjectedModalProps,
+  Modal,
+  Tag,
+  Text,
+  useMatchBreakpoints,
 } from '@pancakeswap/uikit'
-import { TransactionErrorContent, ConfirmationPendingContent } from '@pancakeswap/widgets-internal'
+import { ConfirmationPendingContent, TransactionErrorContent } from '@pancakeswap/widgets-internal'
 
+import { Order } from '@gelatonetwork/limit-orders-lib'
 import { useTranslation } from '@pancakeswap/localization'
+import { TransactionSubmittedContent } from 'components/TransactionConfirmationModal'
+import useGelatoLimitOrdersHandlers from 'hooks/limitOrders/useGelatoLimitOrdersHandlers'
+import { useActiveChainId } from 'hooks/useActiveChainId'
 import useTheme from 'hooks/useTheme'
 import { memo, useCallback, useState } from 'react'
 import { styled } from 'styled-components'
 import { FormattedOrderData } from 'views/LimitOrders/hooks/useFormattedOrderData'
-import useGelatoLimitOrdersHandlers from 'hooks/limitOrders/useGelatoLimitOrdersHandlers'
-import { Order } from '@gelatonetwork/limit-orders-lib'
-import { TransactionSubmittedContent } from 'components/TransactionConfirmationModal'
-import { useActiveChainId } from 'hooks/useActiveChainId'
-import CurrencyFormat from './CurrencyFormat'
-import CellFormat from './CellFormat'
 import LimitOrderDisclaimer from '../LimitOrderDisclaimer'
+import CellFormat from './CellFormat'
+import CurrencyFormat from './CurrencyFormat'
 
 const InfoCardWrapper = styled.div`
   border-radius: 16px;
@@ -126,8 +126,6 @@ export const DetailLimitOrderModal: React.FC<React.PropsWithChildren<DetailLimit
         />
       </Flex>
       <LimitTradeInfoCard
-        currentPriceExchangeRateText="0.002474 BNB = 1 BUSD"
-        currentPriceExchangeRateTextReversed="404.11169 BUSD = 1 BNB"
         limitPriceExchangeRateText={limitPriceExchangeRateText}
         limitPriceExchangeRateTextReversed={limitPriceExchangeRateTextReversed}
         isOpen={isOpen}
@@ -139,24 +137,26 @@ export const DetailLimitOrderModal: React.FC<React.PropsWithChildren<DetailLimit
       />
       <LimitOrderDisclaimer />
       <Flex flexDirection="column">
-        {isOpen || isExpired ? (
-          <>
+        {formattedOrder.bscScanUrls.created ? (
+          isOpen || isExpired ? (
+            <>
+              <Button variant="primary" mt="16px" as="a" external href={formattedOrder.bscScanUrls.created}>
+                {t('View on BscScan')}
+                <BscScanIcon color="invertedContrast" ml="4px" />
+              </Button>
+              {!isSubmissionPending && (
+                <Button variant="danger" mt="16px" onClick={onCancelOrder}>
+                  {t('Cancel Order')}
+                </Button>
+              )}
+            </>
+          ) : (
             <Button variant="primary" mt="16px" as="a" external href={formattedOrder.bscScanUrls.created}>
-              {t('View on BscScan')}
+              {t('View order creation on BSCScan')}
               <BscScanIcon color="invertedContrast" ml="4px" />
             </Button>
-            {!isSubmissionPending && (
-              <Button variant="danger" mt="16px" onClick={onCancelOrder}>
-                {t('Cancel Order')}
-              </Button>
-            )}
-          </>
-        ) : (
-          <Button variant="primary" mt="16px" as="a" external href={formattedOrder.bscScanUrls.created}>
-            {t('View order creation on BSCScan')}
-            <BscScanIcon color="invertedContrast" ml="4px" />
-          </Button>
-        )}
+          )
+        ) : null}
         {isCancelled && bscScanUrls.cancelled && (
           <Button variant="primary" mt="16px" as="a" external href={bscScanUrls.cancelled}>
             {t('View order cancellation on BSCScan')}
@@ -193,8 +193,6 @@ export const DetailLimitOrderModal: React.FC<React.PropsWithChildren<DetailLimit
 }
 
 interface LimitTradeInfoCardProps {
-  currentPriceExchangeRateText: string
-  currentPriceExchangeRateTextReversed: string
   limitPriceExchangeRateText: string
   limitPriceExchangeRateTextReversed: string
   isOpen: boolean

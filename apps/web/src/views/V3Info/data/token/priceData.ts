@@ -1,15 +1,13 @@
 import dayjs from 'dayjs'
 import utc from 'dayjs/plugin/utc'
-import weekOfYear from 'dayjs/plugin/weekOfYear'
 import { gql, GraphQLClient } from 'graphql-request'
 import { MultiChainNameExtend } from 'state/info/constant'
 import { getBlocksFromTimestamps } from 'utils/getBlocksFromTimestamps'
-import { PriceChartEntry } from '../../types'
 import { ONE_DAY_SECONDS } from '../../constants'
+import { PriceChartEntry } from '../../types'
 
 // format dayjs with the libraries that we need
 dayjs.extend(utc)
-dayjs.extend(weekOfYear)
 
 export const PRICES_BY_BLOCK = (tokenAddress: string, blocks: any) => {
   let queryString = 'query blocks {'
@@ -201,7 +199,7 @@ export async function fetchTokenPriceData(
     }
 
     // create an array of hour start times until we reach current hour
-    const timestamps = []
+    const timestamps: number[] = []
     let time = startTimestamp
     while (time <= endTimestamp) {
       timestamps.push(time)
@@ -260,7 +258,7 @@ export async function fetchTokenPriceData(
 
     const formattedHistory = data.map((d) => {
       return {
-        time: d?.periodStartUnix || d?.date,
+        time: (d?.periodStartUnix || d?.date)!,
         open: parseFloat(d.open),
         close: parseFloat(d.close),
         high: parseFloat(d.high),
@@ -310,7 +308,7 @@ export async function fetchPairPriceChartTokenData(
     }
 
     // create an array of hour start times until we reach current hour
-    const timestamps = []
+    const timestamps: number[] = []
     let time = startTimestamp
     while (time <= endTimestamp) {
       timestamps.push(time)
@@ -394,7 +392,7 @@ export async function fetchPairPriceChartTokenData(
       const close = parseFloat(d.close)
       averagePrice += close
       return {
-        time: d?.periodStartUnix || d?.date,
+        time: (d?.periodStartUnix || d?.date)!,
         open: parseFloat(d.open),
         close,
         high,

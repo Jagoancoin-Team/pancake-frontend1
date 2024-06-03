@@ -1,6 +1,6 @@
 import { ChainId } from '@pancakeswap/chains'
-import { BIG_TWO, BIG_ZERO } from '@pancakeswap/utils/bigNumber'
-import { CurrencyParams, getCurrencyKey, getCurrencyListUsdPrice } from '@pancakeswap/utils/getCurrencyPrice'
+import { CurrencyParams, getCurrencyKey, getCurrencyListUsdPrice } from '@pancakeswap/price-api-sdk'
+import { BIG_ONE, BIG_TWO, BIG_ZERO } from '@pancakeswap/utils/bigNumber'
 import BN from 'bignumber.js'
 import { Address, PublicClient, formatUnits } from 'viem'
 import { FarmV2SupportedChainId, supportedChainIdV2 } from '../const'
@@ -37,6 +37,11 @@ const evmNativeStableLpMap: Record<
     address: '0x4E96D2e92680Ca65D58A0e2eB5bd1c0f44cAB897',
     wNative: 'WBNB',
     stable: 'BUSD',
+  },
+  [ChainId.ARBITRUM_ONE]: {
+    address: '0x4E96D2e92680Ca65D58A0e2eB5bd1c0f44cAB897',
+    wNative: 'WETH',
+    stable: 'USDC',
   },
 }
 
@@ -104,10 +109,11 @@ export async function farmV2FetchFarms({
               token0Decimals: farm.token.decimals,
               token1Decimals: farm.quoteToken.decimals,
             })),
+        // TODO: remove hardcode allocPoint & totalRegularAllocPoint later
         ...getFarmAllocation({
-          allocPoint: poolInfos[index]?.allocPoint,
+          allocPoint: BigInt(farm?.allocPoint ?? 0) ?? poolInfos[index]?.allocPoint,
           isRegular: poolInfos[index]?.isRegular,
-          totalRegularAllocPoint,
+          totalRegularAllocPoint: BigInt(2305) || totalRegularAllocPoint,
           totalSpecialAllocPoint,
         }),
       }
@@ -361,7 +367,7 @@ const getStableFarmDynamicData = ({
   // Amount of token in the LP that are staked in the MC
   const tokenAmountMcFixed = tokenAmountTotal.times(lpTokenRatio)
 
-  const quoteTokenAmountMcFixedByTokenAmount = tokenAmountMcFixed.times(tokenPriceVsQuote)
+  const quoteTokenAmountMcFixedByTokenAmount = tokenAmountMcFixed.times(BIG_ONE.div(tokenPriceVsQuote))
 
   const lpTotalInQuoteToken = quoteTokenAmountMcFixed.plus(quoteTokenAmountMcFixedByTokenAmount)
 

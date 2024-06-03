@@ -1,4 +1,5 @@
-import { Text, useMatchBreakpoints } from '@pancakeswap/uikit'
+import { useTranslation } from '@pancakeswap/localization'
+import { Box, Link, Text, useMatchBreakpoints } from '@pancakeswap/uikit'
 import { getBalanceNumber } from '@pancakeswap/utils/formatBalance'
 import { Pool } from '@pancakeswap/widgets-internal'
 import { memo, useCallback, useMemo } from 'react'
@@ -7,8 +8,13 @@ import { VaultKey } from 'state/types'
 import { VeCakeBenefitCard } from 'views/CakeStaking/components/SyrupPool/VeCakeCard'
 
 import { Token } from '@pancakeswap/swap-sdk-core'
+import { bscTokens } from '@pancakeswap/tokens'
+import { GiftTooltip } from 'components/GiftTooltip/GiftTooltip'
 import styled from 'styled-components'
+import { Address, isAddressEqual } from 'viem'
+import { bsc } from 'viem/chains'
 import { useIsUserDelegated } from 'views/CakeStaking/hooks/useIsUserDelegated'
+import { useChainId } from 'wagmi'
 import ActionPanel from './ActionPanel/ActionPanel'
 import AprCell from './Cells/AprCell'
 import AutoAprCell from './Cells/AutoAprCell'
@@ -31,6 +37,7 @@ const MigrateCell = styled(Pool.BaseCell)`
 export const VaultPoolRow: React.FC<
   React.PropsWithChildren<{ vaultKey: VaultKey; account: string; initialActivity?: boolean }>
 > = memo(({ vaultKey, account, initialActivity }) => {
+  const { t } = useTranslation()
   const { isLg, isXl, isXxl, isMobile } = useMatchBreakpoints()
   const isLargerScreen = isLg || isXl || isXxl
   const isXLargerScreen = isXl || isXxl
@@ -51,7 +58,7 @@ export const VaultPoolRow: React.FC<
         <MigrateCell>
           {isMobile ? (
             <Text fontSize={14} lineHeight="14px">
-              This product have been upgraded!
+              {t('This product have been upgraded!')}
             </Text>
           ) : (
             <VeCakeBenefitCard isTableView />
@@ -81,22 +88,44 @@ const PoolRow: React.FC<React.PropsWithChildren<{ sousId: number; account: strin
   account,
   initialActivity,
 }) => {
+  const { t } = useTranslation()
+  const chainId = useChainId()
   const { isLg, isXl, isXxl, isDesktop } = useMatchBreakpoints()
   const isLargerScreen = isLg || isXl || isXxl
   const { pool } = usePool(sousId)
-  const { stakingToken, totalStaked } = pool
+  const stakingToken = pool?.stakingToken
+  const earningToken = pool?.earningToken
+  const totalStaked = pool?.totalStaked
 
   const totalStakedBalance = useMemo(() => {
-    return getBalanceNumber(totalStaked, stakingToken.decimals)
-  }, [stakingToken.decimals, totalStaked])
+    return getBalanceNumber(totalStaked, stakingToken?.decimals)
+  }, [stakingToken?.decimals, totalStaked])
 
   const getNow = useCallback(() => Date.now(), [])
 
-  return (
+  const tooltip =
+    chainId === bsc.id &&
+    stakingToken &&
+    earningToken &&
+    isAddressEqual(stakingToken.address as Address, bscTokens.cake.address) &&
+    isAddressEqual(earningToken.address as Address, bscTokens.pepe.address) ? (
+      <GiftTooltip>
+        <Box>
+          <Text lineHeight="110%" as="span">
+            {t("Enjoying the APR? Get more PEPE rewards in next month's Syrup Pool by staking more PEPE-BNB LP in our")}
+            <Link ml="4px" lineHeight="110%" display="inline !important" href="/farms?chain=bsc" target="_blank">
+              Farms
+            </Link>
+          </Text>
+        </Box>
+      </GiftTooltip>
+    ) : null
+
+  return pool ? (
     <Pool.ExpandRow initialActivity={initialActivity} panel={<ActionPanel account={account} pool={pool} expanded />}>
-      <NameCell pool={pool} />
+      <NameCell pool={pool} tooltip={tooltip} />
       <EarningsCell pool={pool} account={account} />
-      {isLargerScreen && (
+      {isLargerScreen && stakingToken && (
         <TotalStakedCell
           stakingToken={stakingToken}
           totalStaked={totalStaked}
@@ -106,7 +135,7 @@ const PoolRow: React.FC<React.PropsWithChildren<{ sousId: number; account: strin
       <AprCell pool={pool} />
       {isDesktop && <Pool.EndsInCell pool={pool} getNow={getNow} />}
     </Pool.ExpandRow>
-  )
+  ) : null
 }
 
 export default memo(PoolRow)

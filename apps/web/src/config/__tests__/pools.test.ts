@@ -1,4 +1,4 @@
-import { ChainId } from '@pancakeswap/chains'
+import { ChainId, testnetChainIds } from '@pancakeswap/chains'
 import {
   SUPPORTED_CHAIN_IDS,
   SerializedPool,
@@ -6,14 +6,14 @@ import {
   getPoolsConfig,
   isLegacyPool,
 } from '@pancakeswap/pools'
-import { publicClient } from 'utils/client'
+import { publicClient } from 'utils/wagmi'
 import { Address, formatUnits } from 'viem'
 import { describe, it } from 'vitest'
 
 describe.concurrent(
   'Config pools',
   () => {
-    for (const chainId of SUPPORTED_CHAIN_IDS) {
+    for (const chainId of SUPPORTED_CHAIN_IDS.filter((chainId_) => !testnetChainIds.includes(chainId_))) {
       const pools = getPoolsConfig(chainId) ?? []
       // Pool 0 is special (cake pool)
       // Pool 78 is a broken pool, not used, and break the tests
@@ -81,8 +81,7 @@ describe.concurrent(
           })
           if (isLegacyPool(pool)) {
             const rewardPerBlock = await contract.read.rewardPerBlock()
-
-            expect(String(parseFloat(formatUnits(rewardPerBlock, pool.earningToken.decimals)))).toBe(pool.tokenPerBlock)
+            expect(formatUnits(rewardPerBlock, pool.earningToken.decimals)).toBe(pool.tokenPerBlock)
           } else {
             const rewardPerSecond = await contract.read.rewardPerSecond()
 

@@ -22,7 +22,12 @@ const nextConfig = {
     '@pancakeswap/tokens',
     '@pancakeswap/farms',
     '@pancakeswap/widgets-internal',
+    // https://github.com/TanStack/query/issues/6560#issuecomment-1975771676
+    '@tanstack/query-core',
   ],
+  experimental: {
+    optimizePackageImports: ['@pancakeswap/widgets-internal', '@pancakeswap/uikit'],
+  },
   async redirects() {
     return [
       {

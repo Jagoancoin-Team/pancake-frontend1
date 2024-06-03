@@ -1,7 +1,7 @@
 import { ChainId } from '@pancakeswap/chains'
 import { useTranslation } from '@pancakeswap/localization'
 import { TradeType } from '@pancakeswap/sdk'
-import { SmartRouter, SmartRouterTrade } from '@pancakeswap/smart-router/evm'
+import { SmartRouter, SmartRouterTrade } from '@pancakeswap/smart-router'
 import { formatAmount } from '@pancakeswap/utils/formatFractions'
 import truncateHash from '@pancakeswap/utils/truncateHash'
 import { useUserSlippage } from '@pancakeswap/utils/user'
@@ -14,12 +14,11 @@ import { basisPointsToPercent } from 'utils/exchange'
 import { logSwap, logTx } from 'utils/log'
 import { isUserRejected } from 'utils/sentry'
 import { transactionErrorToUserReadableMessage } from 'utils/transactionErrorToUserReadableMessage'
-import { viemClients } from 'utils/viem'
-import { Address, Hex, TransactionExecutionError, hexToBigInt } from 'viem'
+import { Address, Hex, TransactionExecutionError, UserRejectedRequestError, hexToBigInt } from 'viem'
 import { useSendTransaction } from 'wagmi'
-import { SendTransactionResult } from 'wagmi/actions'
 
 import { logger } from 'utils/datadog'
+import { viemClients } from 'utils/viem'
 import { isZero } from '../utils/isZero'
 
 interface SwapCall {
@@ -54,7 +53,8 @@ export default function useSendSwapTransaction(
   chainId?: number,
   trade?: SmartRouterTrade<TradeType> | null, // trade to execute, required
   swapCalls: SwapCall[] | WallchainSwapCall[] = [],
-): { callback: null | (() => Promise<SendTransactionResult>) } {
+  type: 'V3SmartSwap' | 'UniversalRouter' = 'V3SmartSwap',
+) {
   const { t } = useTranslation()
   const addTransaction = useTransactionAdder()
   const { sendTransactionAsync } = useSendTransaction()
@@ -68,7 +68,7 @@ export default function useSendSwapTransaction(
       return { callback: null }
     }
     return {
-      callback: async function onSwap(): Promise<SendTransactionResult> {
+      callback: async function onSwap() {
         const estimatedCalls: SwapCallEstimate[] = await Promise.all(
           swapCalls.map((call) => {
             const { address, calldata, value } = call
@@ -88,7 +88,6 @@ export default function useSendSwapTransaction(
                     data: calldata,
                     value: hexToBigInt(value),
                   }
-
             return publicClient
               .estimateGas(tx)
               .then((gasEstimate) => {
@@ -136,7 +135,7 @@ export default function useSendSwapTransaction(
         } else {
           call.gas =
             'gasEstimate' in bestCallOption && bestCallOption.gasEstimate
-              ? calculateGasMargin(bestCallOption.gasEstimate)
+              ? calculateGasMargin(bestCallOption.gasEstimate, 2000n)
               : undefined
         }
 
@@ -180,32 +179,35 @@ export default function useSendSwapTransaction(
                 : recipient === account
                 ? 'Swap %inputAmount% %inputSymbol% for min. %outputAmount% %outputSymbol%'
                 : 'Swap %inputAmount% %inputSymbol% for min. %outputAmount% %outputSymbol% to %recipientAddress%'
-            addTransaction(response, {
-              summary: withRecipient,
-              translatableSummary: {
-                text: translatableWithRecipient,
-                data: {
-                  inputAmount,
-                  inputSymbol,
-                  outputAmount,
-                  outputSymbol,
-                  ...(recipient !== account && { recipientAddress: recipientAddressText }),
+            addTransaction(
+              { hash: response },
+              {
+                summary: withRecipient,
+                translatableSummary: {
+                  text: translatableWithRecipient,
+                  data: {
+                    inputAmount,
+                    inputSymbol,
+                    outputAmount,
+                    outputSymbol,
+                    ...(recipient !== account && { recipientAddress: recipientAddressText }),
+                  },
                 },
+                type: 'swap',
               },
-              type: 'swap',
-            })
+            )
             logSwap({
               account,
               chainId,
-              hash: response.hash,
+              hash: response,
               inputAmount,
               outputAmount,
               input: trade.inputAmount.currency,
               output: trade.outputAmount.currency,
-              type: 'V3SmartSwap',
+              type,
             })
-            logTx({ account, chainId, hash: response.hash })
-            return response
+            logTx({ account, chainId, hash: response })
+            return { hash: response }
           })
           .catch((error) => {
             // if the user rejected the tx, pass this along
@@ -221,6 +223,9 @@ export default function useSendSwapTransaction(
                   output: trade.outputAmount.currency,
                   address: call.address,
                   value: call.value,
+                  type,
+                  target: 'AMM',
+                  errorName: error?.name,
                   cause: error instanceof TransactionExecutionError ? error.cause : undefined,
                 },
                 error,
@@ -243,5 +248,14 @@ export default function useSendSwapTransaction(
     recipientAddress,
     recipient,
     addTransaction,
+    type,
   ])
+}
+
+export const userRejectedError = (error: unknown): boolean => {
+  return (
+    error instanceof UserRejectedRequestError ||
+    error instanceof TransactionRejectedError ||
+    (typeof error !== 'string' && isUserRejected(error))
+  )
 }

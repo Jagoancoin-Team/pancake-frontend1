@@ -81,7 +81,7 @@ const StyledCard = styled(Card)`
 `
 
 const StyleUl = styled.ul`
-  list-style-type: '\u2022';
+  list-style-type: '\2022';
   list-style-position: outside;
   margin-left: 16px;
 
@@ -134,7 +134,7 @@ export const BenefitCard: React.FC<{
                   {info.subTitle}
                 </Text>
                 <Text fontSize="16px" bold lineHeight="120%">
-                  {dataText}
+                  {dataText ?? '-'}
                 </Text>
               </Flex>
             ) : null}

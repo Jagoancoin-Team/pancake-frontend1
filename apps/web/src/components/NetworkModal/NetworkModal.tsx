@@ -1,12 +1,12 @@
-import { ModalV2 } from '@pancakeswap/uikit'
-import useActiveWeb3React from 'hooks/useActiveWeb3React'
-import { CHAIN_IDS } from 'utils/wagmi'
 import { ChainId } from '@pancakeswap/chains'
-import { useMemo } from 'react'
-import { useNetwork } from 'wagmi'
-import { atom, useAtom } from 'jotai'
+import { ModalV2 } from '@pancakeswap/uikit'
 import { SUPPORT_ONLY_BSC } from 'config/constants/supportChains'
+import useActiveWeb3React from 'hooks/useActiveWeb3React'
+import { atom, useAtom } from 'jotai'
 import dynamic from 'next/dynamic'
+import { useCallback, useMemo } from 'react'
+import { viemClients } from 'utils/viem'
+import { CHAIN_IDS } from 'utils/wagmi'
 
 export const hideWrongNetworkModalAtom = atom(false)
 
@@ -24,7 +24,6 @@ const UnsupportedNetworkModal = dynamic(
 
 export const NetworkModal = ({ pageSupportedChains = SUPPORT_ONLY_BSC }: { pageSupportedChains?: number[] }) => {
   const { chainId, chain, isWrongNetwork } = useActiveWeb3React()
-  const { chains } = useNetwork()
   const [dismissWrongNetwork, setDismissWrongNetwork] = useAtom(hideWrongNetworkModalAtom)
 
   const isBNBOnlyPage = useMemo(() => {
@@ -32,9 +31,11 @@ export const NetworkModal = ({ pageSupportedChains = SUPPORT_ONLY_BSC }: { pageS
   }, [pageSupportedChains])
 
   const isPageNotSupported = useMemo(
-    () => Boolean(pageSupportedChains.length) && !pageSupportedChains.includes(chainId),
+    () => Boolean(pageSupportedChains.length) && chainId && !pageSupportedChains.includes(chainId),
     [chainId, pageSupportedChains],
   )
+  const handleDismiss = useCallback(() => setDismissWrongNetwork(true), [setDismissWrongNetwork])
+
   if (pageSupportedChains?.length === 0) return null // open to all chains
 
   if (isPageNotSupported && isBNBOnlyPage) {
@@ -46,11 +47,13 @@ export const NetworkModal = ({ pageSupportedChains = SUPPORT_ONLY_BSC }: { pageS
   }
 
   if (isWrongNetwork && !dismissWrongNetwork && !isPageNotSupported) {
-    const currentChain = chains.find((c) => c.id === chainId)
+    const currentChain = Object.values(viemClients)
+      .map((client) => client.chain)
+      .find((c) => c?.id === chainId)
     if (!currentChain) return null
     return (
-      <ModalV2 isOpen={isWrongNetwork} closeOnOverlayClick onDismiss={() => setDismissWrongNetwork(true)}>
-        <WrongNetworkModal currentChain={currentChain} onDismiss={() => setDismissWrongNetwork(true)} />
+      <ModalV2 isOpen={isWrongNetwork} closeOnOverlayClick={false} onDismiss={handleDismiss}>
+        <WrongNetworkModal currentChain={currentChain} onDismiss={handleDismiss} />
       </ModalV2>
     )
   }

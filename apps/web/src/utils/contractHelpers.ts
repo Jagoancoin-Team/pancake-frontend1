@@ -57,10 +57,15 @@ import { stableSwapNativeHelperABI } from 'config/abi/stableSwapNativeHelper'
 import { ChainId } from '@pancakeswap/chains'
 import { bCakeFarmBoosterV3ABI } from '@pancakeswap/farms/constants/v3/abi/bCakeFarmBoosterV3'
 import { bCakeFarmBoosterVeCakeABI } from '@pancakeswap/farms/constants/v3/abi/bCakeFarmBoosterVeCake'
+import { bCakeFarmWrapperBoosterVeCakeABI } from '@pancakeswap/farms/constants/v3/abi/bCakeFarmWrapperBoosterVeCake'
 import { calcGaugesVotingABI, gaugesVotingABI } from '@pancakeswap/gauges'
 import { getIfoCreditAddressContract as getIfoCreditAddressContract_ } from '@pancakeswap/ifos'
 import { cakeFlexibleSideVaultV2ABI, cakeVaultV2ABI } from '@pancakeswap/pools'
-import { positionManagerAdapterABI, positionManagerWrapperABI } from '@pancakeswap/position-managers'
+import {
+  positionManagerAdapterABI,
+  positionManagerVeBCakeWrapperABI,
+  positionManagerWrapperABI,
+} from '@pancakeswap/position-managers'
 import { masterChefV3ABI } from '@pancakeswap/v3-sdk'
 import { sidABI } from 'config/abi/SID'
 import { SIDResolverABI } from 'config/abi/SIDResolver'
@@ -90,22 +95,31 @@ import { tradingCompetitionFanTokenABI } from 'config/abi/tradingCompetitionFanT
 import { tradingCompetitionMoDABI } from 'config/abi/tradingCompetitionMoD'
 import { tradingCompetitionMoboxABI } from 'config/abi/tradingCompetitionMobox'
 import { tradingRewardABI } from 'config/abi/tradingReward'
+import { v2BCakeWrapperABI } from 'config/abi/v2BCakeWrapper'
 import { v3AirdropABI } from 'config/abi/v3Airdrop'
 import { v3MigratorABI } from 'config/abi/v3Migrator'
 import { vCakeABI } from 'config/abi/vCake'
 import { veCakeABI } from 'config/abi/veCake'
 import { getViemClients, viemClients } from 'utils/viem'
-import { Abi, PublicClient, WalletClient, getContract as viemGetContract } from 'viem'
-import { Address, erc20ABI, erc721ABI } from 'wagmi'
+import {
+  Abi,
+  Address,
+  GetContractReturnType,
+  PublicClient,
+  WalletClient,
+  erc20Abi,
+  erc721Abi,
+  getContract as viemGetContract,
+} from 'viem'
 
-export const getContract = <TAbi extends Abi | unknown[], TWalletClient extends WalletClient>({
+export const getContract = <TAbi extends Abi | readonly unknown[], TWalletClient extends WalletClient>({
   abi,
   address,
   chainId = ChainId.BSC,
   publicClient,
   signer,
 }: {
-  abi: TAbi
+  abi: TAbi | readonly unknown[]
   address: Address
   chainId?: ChainId
   signer?: TWalletClient
@@ -114,13 +128,12 @@ export const getContract = <TAbi extends Abi | unknown[], TWalletClient extends 
   const c = viemGetContract({
     abi,
     address,
-    // TODO: Fix viem
-    // @ts-ignore
-    publicClient: publicClient ?? viemClients[chainId],
-    // TODO: Fix viem
-    // @ts-ignore
-    walletClient: signer,
-  })
+    client: {
+      public: publicClient ?? viemClients[chainId],
+      wallet: signer,
+    },
+  }) as unknown as GetContractReturnType<TAbi, PublicClient, Address>
+
   return {
     ...c,
     account: signer?.account,
@@ -129,12 +142,12 @@ export const getContract = <TAbi extends Abi | unknown[], TWalletClient extends 
 }
 
 export const getBep20Contract = (address: Address, signer?: WalletClient) => {
-  return getContract({ abi: erc20ABI, address, signer })
+  return getContract({ abi: erc20Abi, address, signer })
 }
 
 export const getErc721Contract = (address: Address, walletClient?: WalletClient) => {
   return getContract({
-    abi: erc721ABI,
+    abi: erc721Abi,
     address,
     signer: walletClient,
   })
@@ -148,7 +161,7 @@ export const getPointCenterIfoContract = (signer?: WalletClient) => {
 }
 export const getCakeContract = (chainId?: number) => {
   return getContract({
-    abi: erc20ABI,
+    abi: erc20Abi,
     address: chainId ? CAKE[chainId]?.address : CAKE[ChainId.BSC].address,
     chainId,
   })
@@ -268,9 +281,36 @@ export const getBCakeFarmBoosterVeCakeContract = (signer?: WalletClient, chainId
   })
 }
 
+export const getBCakeFarmWrapperBoosterVeCakeContract = (address: Address, signer?: WalletClient, chainId?: number) => {
+  return getContract({
+    abi: bCakeFarmWrapperBoosterVeCakeABI,
+    address,
+    signer,
+    chainId,
+  })
+}
+
 export const getPositionManagerWrapperContract = (address: `0x${string}`, signer?: WalletClient, chainId?: number) => {
   return getContract({
     abi: positionManagerWrapperABI,
+    address,
+    signer,
+    chainId,
+  })
+}
+
+export const getPositionManagerBCakeWrapperContract = (address: Address, signer?: WalletClient, chainId?: number) => {
+  return getContract({
+    abi: positionManagerVeBCakeWrapperABI,
+    address,
+    signer,
+    chainId,
+  })
+}
+
+export const getV2SSBCakeWrapperContract = (address: Address, signer?: WalletClient, chainId?: number) => {
+  return getContract({
+    abi: v2BCakeWrapperABI,
     address,
     signer,
     chainId,
@@ -375,13 +415,17 @@ export const getStableSwapNativeHelperContract = (signer?: WalletClient, chainId
 }
 
 export const getMasterChefContract = (signer?: WalletClient, chainId?: number) => {
-  return getContract({
-    abi: masterChefV2ABI,
-    address: getMasterChefV2Address(chainId),
-    chainId,
-    signer,
-  })
+  const mcv2Address = getMasterChefV2Address(chainId)
+  return mcv2Address
+    ? getContract({
+        abi: masterChefV2ABI,
+        address: mcv2Address,
+        chainId,
+        signer,
+      })
+    : null
 }
+
 export const getMasterChefV3Contract = (signer?: WalletClient, chainId?: number) => {
   const mcv3Address = getMasterChefV3Address(chainId)
   return mcv3Address
@@ -424,6 +468,8 @@ export const getAffiliateProgramContract = (signer?: WalletClient, chainId?: num
   return getContract({
     abi: affiliateProgramABI,
     address: getAffiliateProgramAddress(chainId),
+    chainId,
+    signer,
   })
 }
 

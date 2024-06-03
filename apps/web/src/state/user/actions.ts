@@ -17,7 +17,6 @@ export enum ViewMode {
   CARD = 'CARD',
 }
 
-export const updateUserDeadline = createAction<{ userDeadline: number }>('user/updateUserDeadline')
 export const addSerializedToken = createAction<{ serializedToken: SerializedWrappedToken }>('user/addSerializedToken')
 export const removeSerializedToken = createAction<{ chainId: number; address: string }>('user/removeSerializedToken')
 export const addSerializedPair = createAction<{ serializedPair: SerializedPair }>('user/addSerializedPair')
@@ -53,5 +52,4 @@ export const updateGasPrice = createAction<{ gasPrice: string }>('user/updateGas
 export const addWatchlistToken = createAction<{ address: string }>('user/addWatchlistToken')
 export const addWatchlistPool = createAction<{ address: string }>('user/addWatchlistPool')
 
-export const setIsExchangeChartDisplayed = createAction<boolean>('user/toggleIsExchangeChartDisplayed')
 export const setSubgraphHealthIndicatorDisplayed = createAction<boolean>('user/setSubgraphHealthIndicatorDisplayed')

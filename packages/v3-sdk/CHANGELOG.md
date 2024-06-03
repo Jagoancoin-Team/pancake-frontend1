@@ -1,5 +1,103 @@
 # @pancakeswap/v3-sdk
 
+## 3.8.4
+
+### Patch Changes
+
+- Updated dependencies [e99c216]
+  - @pancakeswap/sdk@5.8.3
+
+## 3.8.3
+
+### Patch Changes
+
+- Updated dependencies [0f4281c]
+- Updated dependencies [63a63d8]
+  - @pancakeswap/chains@0.4.3
+  - @pancakeswap/sdk@5.8.2
+
+## 3.8.2
+
+### Patch Changes
+
+- a29edf6: chore: Remove transferFrom definition from nonfungible position manager
+
+## 3.8.1
+
+### Patch Changes
+
+- 72c834c: Upgrade viem and wagmi v2
+- Updated dependencies [72c834c]
+- Updated dependencies [d4283e5]
+  - @pancakeswap/sdk@5.8.1
+  - @pancakeswap/chains@0.4.2
+
+## 3.8.0
+
+### Minor Changes
+
+- 67ca3d6: Support getting input quote by exact output
+
+## 3.7.13
+
+### Patch Changes
+
+- acc454d: Remove binance extension wallet connector @pancakeswap/wagmi
+  release new pkg @pancakeswap/universal-router-sdk & @pancakeswap/permit2-sdk
+
+## 3.7.12
+
+### Patch Changes
+
+- 610a24a: Introduce v4 router with faster quoting speed
+- Updated dependencies [610a24a]
+  - @pancakeswap/sdk@5.8.0
+  - @pancakeswap/swap-sdk-core@1.1.0
+
+## 3.7.11
+
+### Patch Changes
+
+- Updated dependencies [c269d43]
+  - @pancakeswap/swap-sdk-core@1.0.1
+  - @pancakeswap/sdk@5.7.7
+
+## 3.7.10
+
+### Patch Changes
+
+- b8f0acb: Remove tokens dependency
+
+## 3.7.9
+
+### Patch Changes
+
+- Updated dependencies [a8ffc15]
+  - @pancakeswap/tokens@0.6.3
+
+## 3.7.8
+
+### Patch Changes
+
+- 91969f80f: Add sepolia, base sepolia, arbitrum sepolia support
+- Updated dependencies [91969f80f]
+  - @pancakeswap/sdk@5.7.6
+  - @pancakeswap/chains@0.4.1
+  - @pancakeswap/tokens@0.6.2
+
+## 3.7.7
+
+### Patch Changes
+
+- a270af13a: Remove no used v3 staker
+
+## 3.7.6
+
+### Patch Changes
+
+- Updated dependencies [48ac84692]
+  - @pancakeswap/tokens@0.6.1
+
 ## 3.7.5
 
 ### Patch Changes

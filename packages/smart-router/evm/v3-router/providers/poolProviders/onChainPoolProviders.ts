@@ -1,12 +1,12 @@
 import { ChainId } from '@pancakeswap/chains'
-import { BigintIsh, Currency, CurrencyAmount, Percent } from '@pancakeswap/sdk'
+import { BigintIsh, Currency, CurrencyAmount, Percent, erc20Abi } from '@pancakeswap/sdk'
+import { getStableSwapPools } from '@pancakeswap/stable-swap-sdk'
 import { deserializeToken } from '@pancakeswap/token-lists'
 import { DEPLOYER_ADDRESSES, FeeAmount, pancakeV3PoolABI, parseProtocolFees } from '@pancakeswap/v3-sdk'
-import { Abi, Address, ContractFunctionConfig } from 'viem'
+import { Abi, Address } from 'viem'
 
 import { pancakePairABI } from '../../../abis/IPancakePair'
 import { stableSwapPairABI } from '../../../abis/StableSwapPair'
-import { getStableSwapPools } from '../../../constants/stableSwap'
 import { OnChainProvider, Pool, PoolType, StablePool, V2Pool, V3Pool } from '../../types'
 import { computeV2PoolAddress, computeV3PoolAddress } from '../../utils'
 import { PoolMeta, V3PoolMeta } from './internalTypes'
@@ -16,7 +16,7 @@ export const getV2PoolsOnChain = createOnChainPoolFactory<V2Pool, PoolMeta>({
   getPossiblePoolMetas: ([currencyA, currencyB]) => [
     { address: computeV2PoolAddress(currencyA.wrapped, currencyB.wrapped), currencyA, currencyB },
   ],
-  buildPoolInfoCalls: (address) => [
+  buildPoolInfoCalls: ({ address }) => [
     {
       address,
       functionName: 'getReserves',
@@ -58,7 +58,7 @@ export const getStablePoolsOnChain = createOnChainPoolFactory<StablePool, PoolMe
         currencyB,
       }))
   },
-  buildPoolInfoCalls: (address) => [
+  buildPoolInfoCalls: ({ address }) => [
     {
       address,
       functionName: 'balances',
@@ -124,7 +124,7 @@ export const getV3PoolsWithoutTicksOnChain = createOnChainPoolFactory<V3Pool, V3
       fee,
     }))
   },
-  buildPoolInfoCalls: (address) => [
+  buildPoolInfoCalls: ({ address, currencyA, currencyB }) => [
     {
       address,
       functionName: 'liquidity',
@@ -133,20 +133,34 @@ export const getV3PoolsWithoutTicksOnChain = createOnChainPoolFactory<V3Pool, V3
       address,
       functionName: 'slot0',
     },
+    {
+      abi: erc20Abi,
+      address: currencyA.wrapped.address,
+      functionName: 'balanceOf',
+      args: [address],
+    },
+    {
+      abi: erc20Abi,
+      address: currencyB.wrapped.address,
+      functionName: 'balanceOf',
+      args: [address],
+    },
   ],
-  buildPool: ({ currencyA, currencyB, fee, address }, [liquidity, slot0]) => {
+  buildPool: ({ currencyA, currencyB, fee, address }, [liquidity, slot0, balanceA, balanceB]) => {
     if (!slot0) {
       return null
     }
     const [sqrtPriceX96, tick, , , , feeProtocol] = slot0
-    const [token0, token1] = currencyA.wrapped.sortsBefore(currencyB.wrapped)
-      ? [currencyA, currencyB]
-      : [currencyB, currencyA]
+    const sorted = currencyA.wrapped.sortsBefore(currencyB.wrapped)
+    const [balance0, balance1] = sorted ? [balanceA, balanceB] : [balanceB, balanceA]
+    const [token0, token1] = sorted ? [currencyA, currencyB] : [currencyB, currencyA]
     const [token0ProtocolFee, token1ProtocolFee] = parseProtocolFees(feeProtocol)
     return {
       type: PoolType.V3,
       token0,
       token1,
+      reserve0: CurrencyAmount.fromRawAmount(token0, balance0),
+      reserve1: CurrencyAmount.fromRawAmount(token1, balance1),
       fee,
       liquidity: BigInt(liquidity.toString()),
       sqrtRatioX96: BigInt(sqrtPriceX96.toString()),
@@ -158,10 +172,18 @@ export const getV3PoolsWithoutTicksOnChain = createOnChainPoolFactory<V3Pool, V3
   },
 })
 
+// maybe add back strict type later
+type ContractFunctionConfig = {
+  abi?: Abi
+  address: Address
+  functionName: string
+  args?: any[]
+}
+
 interface OnChainPoolFactoryParams<TPool extends Pool, TPoolMeta extends PoolMeta, TAbi extends Abi | unknown[] = Abi> {
   abi: TAbi
   getPossiblePoolMetas: (pair: [Currency, Currency]) => TPoolMeta[]
-  buildPoolInfoCalls: (poolAddress: Address) => Omit<ContractFunctionConfig<TAbi>, 'abi'>[]
+  buildPoolInfoCalls: (poolMeta: TPoolMeta) => ContractFunctionConfig[]
   buildPool: (poolMeta: TPoolMeta, data: any[]) => TPool | null
 }
 
@@ -173,7 +195,7 @@ function createOnChainPoolFactory<
   return async function poolFactory(
     pairs: [Currency, Currency][],
     provider?: OnChainProvider,
-    blockNumber?: BigintIsh,
+    _blockNumber?: BigintIsh,
   ): Promise<TPool[]> {
     if (!provider) {
       throw new Error('No valid onchain data provider')
@@ -198,10 +220,10 @@ function createOnChainPoolFactory<
       }
     }
 
-    let calls: Omit<ContractFunctionConfig<TAbi>, 'abi'>[] = []
+    let calls: ContractFunctionConfig[] = []
     let poolCallSize = 0
-    for (const { address } of poolMetas) {
-      const poolCalls = buildPoolInfoCalls(address)
+    for (const meta of poolMetas) {
+      const poolCalls = buildPoolInfoCalls(meta)
       if (!poolCallSize) {
         poolCallSize = poolCalls.length
       }
@@ -217,13 +239,12 @@ function createOnChainPoolFactory<
 
     const results = await client.multicall({
       contracts: calls.map((call) => ({
-        abi: abi as any,
+        abi: call.abi || (abi as any),
         address: call.address as `0x${string}`,
         functionName: call.functionName,
         args: call.args as any,
       })),
       allowFailure: true,
-      blockNumber: blockNumber ? BigInt(Number(BigInt(blockNumber))) : undefined,
     })
 
     const pools: TPool[] = []

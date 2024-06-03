@@ -8,17 +8,19 @@ import { useCallback, useContext, useEffect, useState } from 'react'
 import { useSwapActionHandlers } from 'state/swap/useSwapActionHandlers'
 import { currencyId } from 'utils/currencyId'
 
-import { useSwapHotTokenDisplay } from 'hooks/useSwapHotTokenDisplay'
 import { useCurrency } from 'hooks/Tokens'
+import { useSwapHotTokenDisplay } from 'hooks/useSwapHotTokenDisplay'
 import { Field } from 'state/swap/actions'
 import { useDefaultsFromURLSearch, useSingleTokenSwapInfo, useSwapState } from 'state/swap/hooks'
 import Page from '../Page'
+import { SwapFeaturesContext } from './SwapFeaturesContext'
+import { V3SwapForm } from './V3Swap'
 import PriceChartContainer from './components/Chart/PriceChartContainer'
 import HotTokenList from './components/HotTokenList'
 import useWarningImport from './hooks/useWarningImport'
-import { V3SwapForm } from './V3Swap'
 import { StyledInputCurrencyWrapper, StyledSwapContainer } from './styles'
-import { SwapFeaturesContext } from './SwapFeaturesContext'
+import { SwapSelection } from './components/SwapSelection'
+import { SwapType } from './types'
 
 export default function Swap() {
   const { query } = useRouter()
@@ -41,7 +43,7 @@ export default function Swap() {
       setIsSwapHotTokenDisplay(true)
 
       if (!isSwapHotTokenDisplay && isChartDisplayed) {
-        setIsChartDisplayed((currentIsChartDisplayed) => !currentIsChartDisplayed)
+        setIsChartDisplayed?.((currentIsChartDisplayed) => !currentIsChartDisplayed)
       }
     }
   }, [firstTime, isChartDisplayed, isSwapHotTokenDisplay, query, setIsSwapHotTokenDisplay, setIsChartDisplayed])
@@ -117,7 +119,7 @@ export default function Swap() {
               />
             }
             isOpen={isChartDisplayed}
-            setIsOpen={setIsChartDisplayed}
+            setIsOpen={(isOpen) => setIsChartDisplayed?.(isOpen)}
           />
         )}
         {isDesktop && isSwapHotTokenDisplay && isHotTokenSupported && (
@@ -144,6 +146,7 @@ export default function Swap() {
         <Flex flexDirection="column">
           <StyledSwapContainer $isChartExpanded={isChartExpanded}>
             <StyledInputCurrencyWrapper mt={isChartExpanded ? '24px' : '0'}>
+              <SwapSelection swapType={SwapType.MARKET} />
               <AppBody>
                 <V3SwapForm />
               </AppBody>

@@ -3,7 +3,7 @@ import { chainlinkOracleABI } from 'config/abi/chainlinkOracle'
 import { useActiveChainId } from 'hooks/useActiveChainId'
 import { useMemo } from 'react'
 import { Address } from 'viem'
-import { useContractRead } from 'wagmi'
+import { useReadContract } from '@pancakeswap/wagmi'
 import { useGaletoOraclePrice } from './useGaletoOraclePrice'
 
 interface UsePollOraclePriceProps {
@@ -19,13 +19,15 @@ const usePollOraclePrice = ({ chainlinkOracleAddress, galetoOracleAddress }: Use
     [galetoOracleAddress, chainId],
   )
 
-  const { data: chainlinkOraclePrice = 0n, refetch: refetchChainlinkOraclePrice } = useContractRead({
+  const { data: chainlinkOraclePrice = 0n, refetch: refetchChainlinkOraclePrice } = useReadContract({
     abi: chainlinkOracleABI,
     address: chainlinkOracleAddress,
     functionName: 'latestAnswer',
-    watch: true,
     chainId,
-    enabled: !shouldFetchGaletoPrice,
+    query: {
+      enabled: !shouldFetchGaletoPrice,
+    },
+    watch: !shouldFetchGaletoPrice,
   })
 
   const { galetoOraclePrice, refetchGaletoOraclePrice } = useGaletoOraclePrice({

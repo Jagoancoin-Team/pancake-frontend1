@@ -1,5 +1,25 @@
 # @pancakeswap/chains
 
+## 0.4.3
+
+### Patch Changes
+
+- 0f4281c: Migrate polygon zkevm subgraphs
+- 63a63d8: Replace proxy endpoint with studio endpoint
+
+## 0.4.2
+
+### Patch Changes
+
+- 72c834c: Upgrade viem and wagmi v2
+- d4283e5: Add as const for subgraphs type
+
+## 0.4.1
+
+### Patch Changes
+
+- 91969f80f: Add sepolia, base sepolia, arbitrum sepolia support
+
 ## 0.4.0
 
 ### Minor Changes

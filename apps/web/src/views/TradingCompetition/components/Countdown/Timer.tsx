@@ -2,6 +2,7 @@ import { styled } from 'styled-components'
 import { Flex, Heading, Text, Link, useTooltip, BscScanIcon } from '@pancakeswap/uikit'
 import { getBlockExploreLink } from 'utils'
 import { useTranslation, ContextApi } from '@pancakeswap/localization'
+import { ReactNode } from 'react'
 
 export interface TimerProps {
   prefix?: string
@@ -60,7 +61,7 @@ const DefaultBodyTextComponent = ({ children, ...props }) => (
   </Text>
 )
 
-const TooltipContent = ({ blockNumber, t }: { blockNumber: number; t: ContextApi['t'] }): JSX.Element => (
+const TooltipContent = ({ blockNumber, t }: { blockNumber: number; t: ContextApi['t'] }): ReactNode => (
   <>
     <Text color="body" mb="10px" fontWeight="600">
       {t('Block %num%', { num: blockNumber })}
@@ -84,7 +85,7 @@ const Wrapper: React.FC<React.PropsWithChildren<TimerProps>> = ({
   BodyTextComponent = DefaultBodyTextComponent,
 }) => {
   const { t } = useTranslation()
-  const { targetRef, tooltip, tooltipVisible } = useTooltip(<TooltipContent blockNumber={blockNumber} t={t} />, {
+  const { targetRef, tooltip, tooltipVisible } = useTooltip(<TooltipContent blockNumber={blockNumber || 0} t={t} />, {
     placement: 'bottom',
   })
   const shouldDisplayTooltip = showTooltip && tooltipVisible

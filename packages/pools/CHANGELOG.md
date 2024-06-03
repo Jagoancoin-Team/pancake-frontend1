@@ -1,5 +1,156 @@
 # @pancakeswap/pools
 
+## 5.1.23
+
+### Patch Changes
+
+- Updated dependencies [b57fd91]
+- Updated dependencies [755bb18]
+- Updated dependencies [502d961]
+  - @pancakeswap/tokens@0.6.17
+
+## 5.1.22
+
+### Patch Changes
+
+- Updated dependencies [b20f210]
+- Updated dependencies [9bef4cd]
+  - @pancakeswap/tokens@0.6.16
+
+## 5.1.21
+
+### Patch Changes
+
+- Updated dependencies [0f4281c]
+- Updated dependencies [63a63d8]
+  - @pancakeswap/chains@0.4.3
+  - @pancakeswap/tokens@0.6.15
+  - @pancakeswap/token-lists@0.0.11
+
+## 5.1.20
+
+### Patch Changes
+
+- Updated dependencies [e8c58b7]
+  - @pancakeswap/tokens@0.6.14
+
+## 5.1.19
+
+### Patch Changes
+
+- Updated dependencies [b4a1d82]
+  - @pancakeswap/tokens@0.6.13
+
+## 5.1.18
+
+### Patch Changes
+
+- 72c834c: Upgrade viem and wagmi v2
+- Updated dependencies [72c834c]
+- Updated dependencies [d4283e5]
+  - @pancakeswap/chains@0.4.2
+  - @pancakeswap/tokens@0.6.12
+  - @pancakeswap/token-lists@0.0.11
+
+## 5.1.17
+
+### Patch Changes
+
+- c469596: Add PEPE pool
+
+## 5.1.16
+
+### Patch Changes
+
+- 087a863: Move finished pools
+
+## 5.1.15
+
+### Patch Changes
+
+- Updated dependencies [30ef48c]
+  - @pancakeswap/tokens@0.6.11
+
+## 5.1.14
+
+### Patch Changes
+
+- d7586b8: Update farms, pools, gauges, tokens
+- Updated dependencies [d7586b8]
+  - @pancakeswap/tokens@0.6.10
+
+## 5.1.13
+
+### Patch Changes
+
+- e26505f: List new pool, farm, token and gauges
+- Updated dependencies [e26505f]
+  - @pancakeswap/tokens@0.6.9
+
+## 5.1.12
+
+### Patch Changes
+
+- Updated dependencies [928b9a8]
+  - @pancakeswap/tokens@0.6.8
+
+## 5.1.11
+
+### Patch Changes
+
+- @pancakeswap/tokens@0.6.7
+- @pancakeswap/token-lists@0.0.11
+
+## 5.1.10
+
+### Patch Changes
+
+- @pancakeswap/token-lists@0.0.10
+- @pancakeswap/tokens@0.6.6
+
+## 5.1.9
+
+### Patch Changes
+
+- Updated dependencies [6157db8]
+  - @pancakeswap/tokens@0.6.5
+
+## 5.1.8
+
+### Patch Changes
+
+- Updated dependencies [82f61f9]
+  - @pancakeswap/tokens@0.6.4
+
+## 5.1.7
+
+### Patch Changes
+
+- Updated dependencies [a8ffc15]
+  - @pancakeswap/tokens@0.6.3
+
+## 5.1.6
+
+### Patch Changes
+
+- ce2d025: Add new BSC pool
+
+## 5.1.5
+
+### Patch Changes
+
+- Updated dependencies [91969f80f]
+  - @pancakeswap/chains@0.4.1
+  - @pancakeswap/tokens@0.6.2
+  - @pancakeswap/token-lists@0.0.9
+
+## 5.1.4
+
+### Patch Changes
+
+- Updated dependencies [48ac84692]
+  - @pancakeswap/tokens@0.6.1
+
 ## 5.1.3
 
 ### Patch Changes

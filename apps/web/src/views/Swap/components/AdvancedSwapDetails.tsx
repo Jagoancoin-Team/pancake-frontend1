@@ -1,13 +1,16 @@
 import { useTranslation } from '@pancakeswap/localization'
 import { Currency, CurrencyAmount, Percent, TradeType } from '@pancakeswap/sdk'
 import { LegacyPair as Pair } from '@pancakeswap/smart-router/legacy-router'
-import { Modal, ModalV2, QuestionHelper, SearchIcon, Text, Flex, Link, AutoColumn } from '@pancakeswap/uikit'
-import { formatAmount } from '@pancakeswap/utils/formatFractions'
-import { useState, memo } from 'react'
+import { AutoColumn, Flex, Link, Modal, ModalV2, QuestionHelper, SearchIcon, Text } from '@pancakeswap/uikit'
+import { formatAmount, formatFraction } from '@pancakeswap/utils/formatFractions'
+import { memo, useState } from 'react'
 
+import { NumberDisplay } from '@pancakeswap/widgets-internal'
 import { RowBetween, RowFixed } from 'components/Layout/Row'
 import { RoutingSettingsButton } from 'components/Menu/GlobalSettings/SettingsModal'
 import { Field } from 'state/swap/actions'
+import { SlippageAdjustedAmounts } from '../V3Swap/utils/exchange'
+import { useFeeSaved } from '../hooks/useFeeSaved'
 import FormattedPriceImpact from './FormattedPriceImpact'
 import { RouterViewer } from './RouterViewer'
 import SwapRoute from './SwapRoute'
@@ -25,16 +28,14 @@ export const TradeSummary = memo(function TradeSummary({
   inputAmount?: CurrencyAmount<Currency>
   outputAmount?: CurrencyAmount<Currency>
   tradeType?: TradeType
-  slippageAdjustedAmounts: {
-    INPUT?: CurrencyAmount<Currency>
-    OUTPUT?: CurrencyAmount<Currency>
-  }
-  priceImpactWithoutFee?: Percent
-  realizedLPFee?: CurrencyAmount<Currency>
+  slippageAdjustedAmounts: SlippageAdjustedAmounts
+  priceImpactWithoutFee?: Percent | null
+  realizedLPFee?: CurrencyAmount<Currency> | null
   isMM?: boolean
 }) {
   const { t } = useTranslation()
   const isExactIn = tradeType === TradeType.EXACT_INPUT
+  const { feeSavedAmount, feeSavedUsdValue } = useFeeSaved(inputAmount, outputAmount)
 
   return (
     <AutoColumn style={{ padding: '0 24px' }}>
@@ -59,6 +60,42 @@ export const TradeSummary = memo(function TradeSummary({
           </Text>
         </RowFixed>
       </RowBetween>
+      {feeSavedAmount ? (
+        <RowBetween align="flex-start">
+          <RowFixed>
+            <Text fontSize="14px" color="textSubtle">
+              {t('Fee saved')}
+            </Text>
+            <QuestionHelper
+              text={
+                <>
+                  <Text>{t('Fees saved on PancakeSwap compared to major DEXs charging interface fees')}</Text>
+                </>
+              }
+              ml="4px"
+              placement="top"
+            />
+          </RowFixed>
+          <RowFixed>
+            <NumberDisplay
+              as="span"
+              fontSize={14}
+              value={formatAmount(feeSavedAmount, 2)}
+              suffix={` ${outputAmount?.currency?.symbol}`}
+              color="success"
+            />
+            <NumberDisplay
+              as="span"
+              fontSize={14}
+              color="success"
+              value={formatFraction(feeSavedUsdValue, 2)}
+              prefix="(~$"
+              suffix=")"
+              ml={1}
+            />
+          </RowFixed>
+        </RowBetween>
+      ) : null}
       {priceImpactWithoutFee && (
         <RowBetween style={{ padding: '4px 0 0 0' }}>
           <RowFixed>
@@ -150,11 +187,8 @@ export interface AdvancedSwapDetailsProps {
   pairs?: Pair[]
   path?: Currency[]
   priceImpactWithoutFee?: Percent
-  realizedLPFee?: CurrencyAmount<Currency>
-  slippageAdjustedAmounts?: {
-    INPUT?: CurrencyAmount<Currency>
-    OUTPUT?: CurrencyAmount<Currency>
-  }
+  realizedLPFee?: CurrencyAmount<Currency> | null
+  slippageAdjustedAmounts: SlippageAdjustedAmounts
   inputAmount?: CurrencyAmount<Currency>
   outputAmount?: CurrencyAmount<Currency>
   tradeType?: TradeType
@@ -184,7 +218,7 @@ export const AdvancedSwapDetails = memo(function AdvancedSwapDetails({
             inputAmount={inputAmount}
             outputAmount={outputAmount}
             tradeType={tradeType}
-            slippageAdjustedAmounts={slippageAdjustedAmounts}
+            slippageAdjustedAmounts={slippageAdjustedAmounts ?? {}}
             priceImpactWithoutFee={priceImpactWithoutFee}
             realizedLPFee={realizedLPFee}
             hasStablePair={hasStablePair}
@@ -205,7 +239,7 @@ export const AdvancedSwapDetails = memo(function AdvancedSwapDetails({
                     placement="top"
                   />
                 </span>
-                <SwapRoute path={path} />
+                {path ? <SwapRoute path={path} /> : null}
                 <SearchIcon style={{ cursor: 'pointer' }} onClick={() => setIsModalOpen(true)} />
                 <ModalV2 closeOnOverlayClick isOpen={isModalOpen} onDismiss={() => setIsModalOpen(false)}>
                   <Modal

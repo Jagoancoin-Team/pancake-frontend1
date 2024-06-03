@@ -1,10 +1,10 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { waitFor } from '@testing-library/react'
 import { act, renderHook } from '@testing-library/react-hooks'
 import { FAST_INTERVAL, SLOW_INTERVAL } from 'config/constants'
 import { useState } from 'react'
-import { waitFor } from '@testing-library/react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createWagmiWrapper } from 'testUtils'
-import { vi, describe, test } from 'vitest'
+import { describe, expect, test, vi } from 'vitest'
 import { useFastRefreshEffect, useSlowRefreshEffect } from './useRefreshEffect'
 
 describe('useRefreshEffect', () => {
@@ -38,7 +38,10 @@ describe('useRefreshEffect', () => {
     const { result, rerender } = renderHook(
       () => {
         const queryClient = useQueryClient()
-        const { data, isSuccess } = useQuery<number>([FAST_INTERVAL, 'blockNumber', 56], { enabled: false })
+        const { data, isSuccess } = useQuery({
+          queryKey: [FAST_INTERVAL, 'blockNumber', 56],
+          enabled: false,
+        })
         useFastRefreshEffect(callback, [callback])
         return { refetch: queryClient, data, isSuccess }
       },
@@ -69,7 +72,9 @@ describe('useRefreshEffect', () => {
       () => {
         const queryClient = useQueryClient()
         const [callbackResult, setCallbackResult] = useState<number>()
-        const { data, isSuccess } = useQuery<number>([SLOW_INTERVAL, 'blockNumber', 56])
+        const { data, isSuccess } = useQuery({
+          queryKey: [SLOW_INTERVAL, 'blockNumber', 56],
+        })
         useSlowRefreshEffect((b) => {
           setCallbackResult(b)
         }, [])

@@ -1,10 +1,10 @@
-import { styled } from 'styled-components'
-import { Card, CardHeader, CardBody, CommunityIcon, Heading, PrizeIcon, Text, Skeleton } from '@pancakeswap/uikit'
-import { getTeam } from 'state/teams/helpers'
 import { useTranslation } from '@pancakeswap/localization'
+import { Card, CardBody, CardHeader, CommunityIcon, Heading, PrizeIcon, Skeleton, Text } from '@pancakeswap/uikit'
 import { useQuery } from '@tanstack/react-query'
-import IconStatBox from './IconStatBox'
+import { getTeam } from 'state/teams/helpers'
+import { styled } from 'styled-components'
 import ComingSoon from './ComingSoon'
+import IconStatBox from './IconStatBox'
 
 interface TeamCardProps {
   id: string
@@ -75,7 +75,12 @@ const StatRow = styled.div`
 const TeamCard: React.FC<React.PropsWithChildren<TeamCardProps>> = ({ id }) => {
   const { t } = useTranslation()
   const idNumber = Number(id)
-  const { data: team, status } = useQuery(['team', id], async () => getTeam(idNumber))
+  const { data: team, status } = useQuery({
+    queryKey: ['team', id],
+    queryFn: async () => getTeam(idNumber),
+  })
+
+  if (!team) return null
 
   return (
     <Wrapper>

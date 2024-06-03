@@ -1,12 +1,18 @@
-import { ContractFunctionConfig, ContractFunctionResult, Hex, MulticallContracts, PublicClient } from 'viem'
+import { AbiStateMutability, ContractFunctionReturnType, Hex, PublicClient } from 'viem'
 import { gaugesVotingABI } from './abis'
 import { getContract } from './contract'
 import { GaugeInfo } from './types'
 
-export const filterKilledGauges = async (client: PublicClient, gauges: GaugeInfo[]): Promise<GaugeInfo[]> => {
+export const fetchAllKilledGauges = async (
+  client: PublicClient,
+  gauges: GaugeInfo[],
+  options?: {
+    blockNumber?: bigint
+  },
+): Promise<GaugeInfo[]> => {
   const contract = getContract(client)
 
-  const multicalls: MulticallContracts<ContractFunctionConfig<typeof gaugesVotingABI, 'gaugeIsKilled_'>[]> = []
+  const multicalls = []
 
   for (let i = 0; i < gauges.length; i++) {
     multicalls.push({
@@ -19,9 +25,16 @@ export const filterKilledGauges = async (client: PublicClient, gauges: GaugeInfo
   const response = (await client.multicall({
     contracts: multicalls,
     allowFailure: false,
-  })) as ContractFunctionResult<typeof gaugesVotingABI, 'gaugeIsKilled_'>[]
+    ...options,
+  })) as ContractFunctionReturnType<typeof gaugesVotingABI, AbiStateMutability, 'gaugeIsKilled_'>[]
 
-  return gauges.filter((_, index) => {
-    return !response[index]
+  return gauges.map((gauge, index) => {
+    if (response[index] === true) {
+      return {
+        ...gauge,
+        killed: response[index],
+      }
+    }
+    return gauge
   })
 }

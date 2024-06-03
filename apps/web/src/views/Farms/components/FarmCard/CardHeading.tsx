@@ -1,9 +1,28 @@
+import { ChainId } from '@pancakeswap/chains'
+import { useTranslation } from '@pancakeswap/localization'
 import { Token } from '@pancakeswap/sdk'
-import { AutoRow, Box, FarmMultiplierInfo, Flex, Heading, Skeleton, Tag, useTooltip } from '@pancakeswap/uikit'
+import {
+  AutoRow,
+  Box,
+  FarmMultiplierInfo,
+  Flex,
+  Heading,
+  Link,
+  Skeleton,
+  Tag,
+  Text,
+  useTooltip,
+} from '@pancakeswap/uikit'
 import { FeeAmount } from '@pancakeswap/v3-sdk'
 import { FarmWidget } from '@pancakeswap/widgets-internal'
+import { GiftTooltip } from 'components/GiftTooltip/GiftTooltip'
+import { SwellTooltip } from 'components/SwellTooltip/SwellTooltip'
 import { TokenPairImage } from 'components/TokenImage'
+import { useHasSwellReward } from 'hooks/useHasSwellReward'
 import { styled } from 'styled-components'
+import { Address, isAddressEqual } from 'viem'
+import { bsc } from 'viem/chains'
+import { useChainId } from 'wagmi'
 import BoostedTag from '../YieldBooster/components/BoostedTag'
 
 const { FarmAuctionTag, StableFarmTag, V2Tag, V3FeeTag } = FarmWidget.Tags
@@ -25,6 +44,10 @@ type ExpandableSectionProps = {
   merklLink?: string
   hasBothFarmAndMerkl?: boolean
   isBoosted?: boolean
+  lpAddress?: Address
+  merklApr?: number
+  isBooster?: boolean
+  bCakeWrapperAddress?: Address
 }
 
 const Wrapper = styled(Flex)`
@@ -50,9 +73,15 @@ const CardHeading: React.FC<React.PropsWithChildren<ExpandableSectionProps>> = (
   totalMultipliers,
   merklLink,
   hasBothFarmAndMerkl,
-  isBoosted,
+  merklApr,
+  lpAddress,
+  isBooster,
+  bCakeWrapperAddress,
 }) => {
-  const isReady = multiplier !== undefined
+  const { t } = useTranslation()
+  const chainId = useChainId()
+  const isReady = multiplier !== undefined || bCakeWrapperAddress
+  const hasSwellReward = useHasSwellReward(lpAddress)
   const multiplierTooltipContent = FarmMultiplierInfo({
     farmCakePerSecond: farmCakePerSecond ?? '-',
     totalMultipliers: totalMultipliers ?? '-',
@@ -80,26 +109,58 @@ const CardHeading: React.FC<React.PropsWithChildren<ExpandableSectionProps>> = (
                   tooltipOffset={[0, 10]}
                   merklLink={merklLink}
                   hasFarm={hasBothFarmAndMerkl}
+                  merklApr={merklApr}
                 />
               </Box>
+            ) : null}
+
+            {chainId === bsc.id &&
+            lpAddress &&
+            isAddressEqual(lpAddress, '0xdD82975ab85E745c84e497FD75ba409Ec02d4739') ? (
+              <GiftTooltip>
+                <Box>
+                  <Text lineHeight="110%" as="span">
+                    {t('Stake CAKE, Earn PEPE in our')}
+                    <Link
+                      ml="4px"
+                      lineHeight="110%"
+                      display="inline !important"
+                      href="/pools?chain=bsc"
+                      target="_blank"
+                    >
+                      PEPE Syrup Pool
+                    </Link>
+                  </Text>
+                  <br />
+                  <br />
+                  <Text lineHeight="110%" as="span">
+                    {t(
+                      "If more PEPE-BNB LP is deposited in our Farm, we'll increase rewards for the PEPE Syrup Pool next month",
+                    )}
+                  </Text>
+                </Box>
+              </GiftTooltip>
             ) : null}
           </Heading>
         ) : (
           <Skeleton mb="4px" width={60} height={18} />
         )}
         <AutoRow gap="4px" justifyContent="flex-end">
+          {hasSwellReward && <SwellTooltip />}
           {isReady && isStable ? <StableFarmTag /> : version === 2 ? <V2Tag /> : null}
           {isReady && version === 3 && <V3FeeTag feeAmount={feeAmount} />}
           {isReady && isCommunityFarm && <FarmAuctionTag mr="-4px" />}
           {isReady ? (
-            <Flex ref={targetRef}>
-              <MultiplierTag variant="secondary">{multiplier}</MultiplierTag>
-              {tooltipVisible && tooltip}
-            </Flex>
+            version !== 2 ? (
+              <Flex ref={targetRef}>
+                <MultiplierTag variant="secondary">{multiplier}</MultiplierTag>
+                {tooltipVisible && tooltip}
+              </Flex>
+            ) : null
           ) : (
             <Skeleton ml="4px" width={42} height={28} />
           )}
-          {isReady && isBoosted && <BoostedTag mr="-4px" />}
+          {isReady && isBooster && chainId === ChainId.BSC && <BoostedTag mr="-4px" />}
         </AutoRow>
       </Flex>
     </Wrapper>

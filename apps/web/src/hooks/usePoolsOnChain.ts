@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-shadow, no-await-in-loop, no-constant-condition, no-console */
 import { BigintIsh, Currency } from '@pancakeswap/sdk'
-import { OnChainProvider, Pool, SmartRouter } from '@pancakeswap/smart-router/evm'
-
+import { OnChainProvider, Pool, SmartRouter } from '@pancakeswap/smart-router'
 import { useQuery } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 
-import { getViemClients } from 'utils/viem'
+import { createViemPublicClientGetter } from 'utils/viem'
+import { POOLS_FAST_REVALIDATE } from 'config/pools'
 
 interface Options {
   blockNumber?: number
@@ -34,9 +34,21 @@ function candidatePoolsOnChainHookFactory<TPool extends Pool>(
     currencyB?: Currency,
     { blockNumber, enabled = true }: Options = {},
   ) {
-    const fetchingBlock = useRef<string | null>(null)
+    const refetchInterval = useMemo(() => {
+      const chainId = currencyA?.chainId
+      if (!chainId) {
+        return 0
+      }
+      return POOLS_FAST_REVALIDATE[chainId] || 0
+    }, [currencyA?.chainId])
+
     const key = useMemo(() => {
-      if (!currencyA || !currencyB || currencyA.wrapped.equals(currencyB.wrapped)) {
+      if (
+        !currencyA ||
+        !currencyB ||
+        currencyA.chainId !== currencyB.chainId ||
+        currencyA.wrapped.equals(currencyB.wrapped)
+      ) {
         return ''
       }
       const symbols = currencyA.wrapped.sortsBefore(currencyB.wrapped)
@@ -50,47 +62,32 @@ function candidatePoolsOnChainHookFactory<TPool extends Pool>(
     }, [currencyA, currencyB])
 
     const queryEnabled = !!(enabled && blockNumber && key && pairs)
-    const poolState = useQuery(
-      [poolType, 'pools', key],
-      async () => {
+    const poolState = useQuery({
+      queryKey: [poolType, 'pools', key],
+
+      queryFn: async ({ signal }) => {
         if (!blockNumber || !pairs) {
           throw new Error('Failed to get pools on chain. Missing valid params')
         }
-        fetchingBlock.current = blockNumber.toString()
-        try {
-          const label = `[POOLS_ONCHAIN](${poolType}) ${key} at block ${fetchingBlock.current}`
-          SmartRouter.logger.metric(label)
-          const pools = await getPoolsOnChain(pairs, getViemClients, blockNumber)
-          SmartRouter.logger.metric(label, pools)
+        const label = `[POOLS_ONCHAIN](${poolType}) ${key} at block ${blockNumber}`
+        SmartRouter.logger.metric(label)
+        const getViemClients = createViemPublicClientGetter({ transportSignal: signal })
+        const pools = await getPoolsOnChain(pairs, getViemClients, blockNumber)
+        SmartRouter.logger.metric(label, pools)
 
-          return {
-            pools,
-            key,
-            blockNumber,
-          }
-        } finally {
-          fetchingBlock.current = null
+        return {
+          pools,
+          key,
+          blockNumber,
         }
       },
-      {
-        enabled: queryEnabled,
-        refetchOnWindowFocus: false,
-      },
-    )
 
-    const { refetch, data, isLoading, isFetching: isValidating } = poolState
-    useEffect(() => {
-      // Revalidate pools if block number increases
-      if (
-        queryEnabled &&
-        blockNumber &&
-        fetchingBlock.current !== blockNumber.toString() &&
-        (!data?.blockNumber || blockNumber > data.blockNumber)
-      ) {
-        refetch()
-      }
-      // eslint-disable-next-line
-    }, [blockNumber, data?.blockNumber, queryEnabled])
+      enabled: queryEnabled,
+      refetchInterval,
+      refetchOnWindowFocus: false,
+    })
+
+    const { refetch, data, isLoading, isFetching: isValidating, dataUpdatedAt } = poolState
 
     return {
       refresh: refetch,
@@ -99,6 +96,7 @@ function candidatePoolsOnChainHookFactory<TPool extends Pool>(
       syncing: isValidating,
       blockNumber: data?.blockNumber,
       key: data?.key,
+      dataUpdatedAt,
     }
   }
 }

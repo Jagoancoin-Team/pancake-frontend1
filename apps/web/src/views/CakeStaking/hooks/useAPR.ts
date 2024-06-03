@@ -10,9 +10,14 @@ import { WEEK } from 'config/constants/veCake'
 import { useActiveChainId } from 'hooks/useActiveChainId'
 import { useVeCakeBalance } from 'hooks/useTokenBalance'
 import { useMemo } from 'react'
-import { getMasterChefV2Address, getRevenueSharingVeCakeAddress } from 'utils/addressHelpers'
+import {
+  getMasterChefV2Address,
+  getRevenueSharingVeCakeAddress,
+  getRevenueSharingVeCakeAddressNoFallback,
+} from 'utils/addressHelpers'
 import { publicClient } from 'utils/wagmi'
-import { useContractRead } from 'wagmi'
+import { useReadContract } from 'wagmi'
+import { CakePoolType } from '../types'
 import { useCurrentBlockTimestamp } from './useCurrentBlockTimestamp'
 import { useVeCakeTotalSupply } from './useVeCakeTotalSupply'
 import { useVeCakeUserInfo } from './useVeCakeUserInfo'
@@ -22,6 +27,7 @@ export const useUserCakeTVL = (): bigint => {
 
   return useMemo(() => {
     if (!data) return 0n
+    if (data.cakePoolType === CakePoolType.DELEGATED) return data.amount
     return data.amount + data.cakeAmount
   }, [data])
 }
@@ -47,33 +53,37 @@ export const useCakePoolEmission = () => {
     })
   }, [chainId])
 
-  const { data } = useQuery(['vecake/cakePoolEmission', client.chain.id], async () => {
-    const response = await client.multicall({
-      contracts: [
-        {
-          address: getMasterChefV2Address(client.chain.id),
-          abi: masterChefV2ABI,
-          functionName: 'cakeRateToSpecialFarm',
-        } as const,
-        {
-          address: getMasterChefV2Address(client.chain.id),
-          abi: masterChefV2ABI,
-          functionName: 'poolInfo',
-          args: [pid],
-        } as const,
-        {
-          address: getMasterChefV2Address(client.chain.id),
-          abi: masterChefV2ABI,
-          functionName: 'totalSpecialAllocPoint',
-        } as const,
-      ],
-      allowFailure: false,
-    })
+  const { data } = useQuery({
+    queryKey: ['vecake/cakePoolEmission', client?.chain?.id],
 
-    const cakeRateToSpecialFarm = response[0] ?? 0n
-    const allocPoint = response[1][2] ?? 0n
-    const totalSpecialAllocPoint = response[2] ?? 0n
-    return [cakeRateToSpecialFarm, allocPoint, totalSpecialAllocPoint]
+    queryFn: async () => {
+      const response = await client.multicall({
+        contracts: [
+          {
+            address: getMasterChefV2Address(client?.chain?.id)!,
+            abi: masterChefV2ABI,
+            functionName: 'cakeRateToSpecialFarm',
+          } as const,
+          {
+            address: getMasterChefV2Address(client?.chain?.id)!,
+            abi: masterChefV2ABI,
+            functionName: 'poolInfo',
+            args: [pid],
+          } as const,
+          {
+            address: getMasterChefV2Address(client?.chain?.id)!,
+            abi: masterChefV2ABI,
+            functionName: 'totalSpecialAllocPoint',
+          } as const,
+        ],
+        allowFailure: false,
+      })
+
+      const cakeRateToSpecialFarm = response[0] ?? 0n
+      const allocPoint = response[1][2] ?? 0n
+      const totalSpecialAllocPoint = response[2] ?? 0n
+      return [cakeRateToSpecialFarm, allocPoint, totalSpecialAllocPoint]
+    },
   })
 
   return useMemo(() => {
@@ -111,11 +121,11 @@ const SECONDS_IN_YEAR = 31536000 // 365 * 24 * 60 * 60
 export const useRevShareEmission = () => {
   const { chainId } = useActiveChainId()
   const currentTimestamp = useCurrentBlockTimestamp()
-  const { data: totalDistributed } = useContractRead({
+  const { data: totalDistributed } = useReadContract({
     abi: revenueSharingPoolProxyABI,
-    address: getRevenueSharingVeCakeAddress(chainId) ?? getRevenueSharingVeCakeAddress(ChainId.BSC),
+    address: getRevenueSharingVeCakeAddress(chainId),
     functionName: 'totalDistributed',
-    chainId,
+    chainId: getRevenueSharingVeCakeAddressNoFallback(chainId) ? chainId : ChainId.BSC,
   })
   const lastThursday = useMemo(() => {
     return Math.floor(currentTimestamp / WEEK) * WEEK
@@ -134,6 +144,7 @@ export const useRevenueSharingAPR = () => {
 
   return useMemo(() => {
     if (!revShareEmission || !userSharesPercent?.denominator || !userCakeTVL) return new Percent(0, 1)
+
     return new Percent(
       new BigNumber(revShareEmission).times(SECONDS_IN_YEAR).times(userSharesPercent.numerator.toString()).toFixed(0),
       (userCakeTVL * userSharesPercent.denominator).toString(),
@@ -154,5 +165,40 @@ export const useVeCakeAPR = () => {
     totalAPR,
     cakePoolAPR,
     revenueSharingAPR,
+  }
+}
+
+export const BRIBE_APR = 20
+export const useFourYearTotalVeCakeApr = () => {
+  const revShareEmission = useRevShareEmission()
+  const cakePoolEmission = useCakePoolEmission()
+  const { data: totalSupply } = useVeCakeTotalSupply()
+
+  const veCAKEPoolApr = useMemo(
+    () =>
+      new BigNumber(new BigNumber(cakePoolEmission).div(3).times(24 * 60 * 60 * 365))
+        .div(totalSupply.div(1e18))
+        .times(100),
+    [cakePoolEmission, totalSupply],
+  )
+
+  const revShareEmissionApr = useMemo(
+    () =>
+      new BigNumber(revShareEmission)
+        .times(24 * 60 * 60 * 365)
+        .div(totalSupply)
+        .times(100),
+    [revShareEmission, totalSupply],
+  )
+
+  const total = useMemo(
+    () => veCAKEPoolApr.plus(revShareEmissionApr).plus(BRIBE_APR),
+    [veCAKEPoolApr, revShareEmissionApr],
+  )
+
+  return {
+    totalApr: total,
+    veCAKEPoolApr: veCAKEPoolApr.toString(),
+    revShareEmissionApr: revShareEmissionApr.toString(),
   }
 }

@@ -1,5 +1,316 @@
 # @pancakeswap/smart-router
 
+## 6.0.9
+
+### Patch Changes
+
+- Updated dependencies [b57fd91]
+- Updated dependencies [e99c216]
+- Updated dependencies [755bb18]
+- Updated dependencies [502d961]
+  - @pancakeswap/tokens@0.6.17
+  - @pancakeswap/sdk@5.8.3
+  - @pancakeswap/gauges@1.2.5
+  - @pancakeswap/stable-swap-sdk@1.0.9
+  - @pancakeswap/multicall@3.5.3
+  - @pancakeswap/v3-sdk@3.8.4
+
+## 6.0.8
+
+### Patch Changes
+
+- Updated dependencies [b20f210]
+- Updated dependencies [9bef4cd]
+  - @pancakeswap/tokens@0.6.16
+  - @pancakeswap/gauges@1.2.4
+  - @pancakeswap/stable-swap-sdk@1.0.8
+
+## 6.0.7
+
+### Patch Changes
+
+- Updated dependencies [0f4281c]
+- Updated dependencies [63a63d8]
+  - @pancakeswap/chains@0.4.3
+  - @pancakeswap/gauges@1.2.3
+  - @pancakeswap/multicall@3.5.2
+  - @pancakeswap/stable-swap-sdk@1.0.7
+  - @pancakeswap/sdk@5.8.2
+  - @pancakeswap/tokens@0.6.15
+  - @pancakeswap/v3-sdk@3.8.3
+  - @pancakeswap/token-lists@0.0.11
+
+## 6.0.6
+
+### Patch Changes
+
+- Updated dependencies [a29edf6]
+  - @pancakeswap/v3-sdk@3.8.2
+  - @pancakeswap/gauges@1.2.2
+
+## 6.0.5
+
+### Patch Changes
+
+- Updated dependencies [e8c58b7]
+  - @pancakeswap/tokens@0.6.14
+  - @pancakeswap/gauges@1.2.1
+  - @pancakeswap/stable-swap-sdk@1.0.6
+
+## 6.0.4
+
+### Patch Changes
+
+- Updated dependencies [75e7a03]
+  - @pancakeswap/gauges@1.2.0
+
+## 6.0.3
+
+### Patch Changes
+
+- Updated dependencies [b4a1d82]
+  - @pancakeswap/stable-swap-sdk@1.0.5
+  - @pancakeswap/tokens@0.6.13
+  - @pancakeswap/gauges@1.1.9
+
+## 6.0.2
+
+### Patch Changes
+
+- 72c834c: Upgrade viem and wagmi v2
+- Updated dependencies [72c834c]
+- Updated dependencies [d4283e5]
+  - @pancakeswap/multicall@3.5.1
+  - @pancakeswap/sdk@5.8.1
+  - @pancakeswap/chains@0.4.2
+  - @pancakeswap/gauges@1.1.8
+  - @pancakeswap/v3-sdk@3.8.1
+  - @pancakeswap/tokens@0.6.12
+  - @pancakeswap/stable-swap-sdk@1.0.4
+  - @pancakeswap/token-lists@0.0.11
+
+## 6.0.1
+
+### Patch Changes
+
+- 1aaed60: Disable stable swap for exact output
+
+## 6.0.0
+
+### Major Changes
+
+- 1d74cbb: Introduce new trade format
+
+## 5.1.8
+
+### Patch Changes
+
+- 4e88d8f: Fix not picking the optimal output when trading with exact output
+
+## 5.1.7
+
+### Patch Changes
+
+- Updated dependencies [30ef48c]
+  - @pancakeswap/tokens@0.6.11
+  - @pancakeswap/gauges@1.1.7
+  - @pancakeswap/stable-swap-sdk@1.0.3
+
+## 5.1.6
+
+### Patch Changes
+
+- 67ca3d6: Support getting input quote by exact output
+- Updated dependencies [67ca3d6]
+  - @pancakeswap/v3-sdk@3.8.0
+  - @pancakeswap/gauges@1.1.6
+
+## 5.1.5
+
+### Patch Changes
+
+- ab7f9fb: Slient price api error when testnet or chain is not supported
+- d807074: Remove smart router evm sub path
+
+## 5.1.4
+
+### Patch Changes
+
+- Updated dependencies [d7586b8]
+  - @pancakeswap/gauges@1.1.5
+  - @pancakeswap/tokens@0.6.10
+  - @pancakeswap/stable-swap-sdk@1.0.2
+
+## 5.1.3
+
+### Patch Changes
+
+- Updated dependencies [e26505f]
+  - @pancakeswap/gauges@1.1.4
+  - @pancakeswap/tokens@0.6.9
+  - @pancakeswap/stable-swap-sdk@1.0.1
+
+## 5.1.2
+
+### Patch Changes
+
+- 526586d: Add fot detector addresses
+
+## 5.1.1
+
+### Patch Changes
+
+- e6e8751: Add fot detector
+
+## 5.1.0
+
+### Minor Changes
+
+- 3b76a26: Introduce stable swap sdk
+
+### Patch Changes
+
+- Updated dependencies [3b76a26]
+  - @pancakeswap/stable-swap-sdk@1.0.0
+
+## 5.0.4
+
+### Patch Changes
+
+- Updated dependencies [928b9a8]
+  - @pancakeswap/tokens@0.6.8
+  - @pancakeswap/gauges@1.1.3
+
+## 5.0.3
+
+### Patch Changes
+
+- acc454d: Remove binance extension wallet connector @pancakeswap/wagmi
+  release new pkg @pancakeswap/universal-router-sdk & @pancakeswap/permit2-sdk
+- Updated dependencies [acc454d]
+  - @pancakeswap/v3-sdk@3.7.13
+  - @pancakeswap/gauges@1.1.2
+
+## 5.0.2
+
+### Patch Changes
+
+- 9db696b: Doc revision: correct the import path from smart router package
+
+## 5.0.1
+
+### Patch Changes
+
+- ad51fb7: Add usage example for v4 router
+
+## 5.0.0
+
+### Major Changes
+
+- 610a24a: Introduce v4 router with faster quoting speed
+
+### Patch Changes
+
+- Updated dependencies [610a24a]
+  - @pancakeswap/multicall@3.5.0
+  - @pancakeswap/sdk@5.8.0
+  - @pancakeswap/swap-sdk-core@1.1.0
+  - @pancakeswap/v3-sdk@3.7.12
+  - @pancakeswap/gauges@1.1.1
+  - @pancakeswap/tokens@0.6.7
+  - @pancakeswap/token-lists@0.0.11
+
+## 4.14.10
+
+### Patch Changes
+
+- Updated dependencies [9886d06]
+  - @pancakeswap/gauges@1.1.0
+
+## 4.14.9
+
+### Patch Changes
+
+- Updated dependencies [c269d43]
+  - @pancakeswap/swap-sdk-core@1.0.1
+  - @pancakeswap/sdk@5.7.7
+  - @pancakeswap/token-lists@0.0.10
+  - @pancakeswap/v3-sdk@3.7.11
+  - @pancakeswap/gauges@1.0.5
+  - @pancakeswap/multicall@3.4.2
+  - @pancakeswap/tokens@0.6.6
+
+## 4.14.8
+
+### Patch Changes
+
+- Updated dependencies [6157db8]
+  - @pancakeswap/tokens@0.6.5
+  - @pancakeswap/gauges@1.0.4
+
+## 4.14.7
+
+### Patch Changes
+
+- Updated dependencies [82f61f9]
+  - @pancakeswap/tokens@0.6.4
+  - @pancakeswap/gauges@1.0.3
+
+## 4.14.6
+
+### Patch Changes
+
+- Updated dependencies [b8f0acb]
+  - @pancakeswap/v3-sdk@3.7.10
+  - @pancakeswap/gauges@1.0.2
+
+## 4.14.5
+
+### Patch Changes
+
+- a8ffc15: Add dlp mdlp stable pair
+- Updated dependencies [a8ffc15]
+  - @pancakeswap/tokens@0.6.3
+  - @pancakeswap/gauges@1.0.1
+  - @pancakeswap/v3-sdk@3.7.9
+
+## 4.14.4
+
+### Patch Changes
+
+- Updated dependencies [0d67620]
+  - @pancakeswap/gauges@1.0.0
+
+## 4.14.3
+
+### Patch Changes
+
+- 91969f80f: Add sepolia, base sepolia, arbitrum sepolia support
+- Updated dependencies [91969f80f]
+  - @pancakeswap/sdk@5.7.6
+  - @pancakeswap/chains@0.4.1
+  - @pancakeswap/tokens@0.6.2
+  - @pancakeswap/v3-sdk@3.7.8
+  - @pancakeswap/gauges@0.0.8
+  - @pancakeswap/multicall@3.4.1
+  - @pancakeswap/token-lists@0.0.9
+
+## 4.14.2
+
+### Patch Changes
+
+- Updated dependencies [a270af13a]
+  - @pancakeswap/v3-sdk@3.7.7
+
+## 4.14.1
+
+### Patch Changes
+
+- 48ac84692: Add new stable pairs
+- Updated dependencies [48ac84692]
+  - @pancakeswap/tokens@0.6.1
+  - @pancakeswap/v3-sdk@3.7.6
+
 ## 4.14.0
 
 ### Minor Changes

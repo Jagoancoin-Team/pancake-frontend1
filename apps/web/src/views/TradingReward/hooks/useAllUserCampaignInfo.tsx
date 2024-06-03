@@ -1,15 +1,21 @@
+import { ChainId } from '@pancakeswap/chains'
+import { useQuery } from '@tanstack/react-query'
 import BigNumber from 'bignumber.js'
-import { useAccount } from 'wagmi'
+import { tradingRewardABI } from 'config/abi/tradingReward'
 import { SLOW_INTERVAL } from 'config/constants'
 import { TRADING_REWARD_API } from 'config/constants/endpoints'
-import { tradingRewardABI } from 'config/abi/tradingReward'
 import { getTradingRewardAddress, getTradingRewardTopTradesAddress } from 'utils/addressHelpers'
-import { CampaignIdInfoResponse, CampaignIdInfoDetail } from 'views/TradingReward/hooks/useCampaignIdInfo'
-import { ChainId } from '@pancakeswap/chains'
 import { publicClient } from 'utils/wagmi'
 import { Address } from 'viem'
 import { RewardType } from 'views/TradingReward/hooks/useAllTradingRewardPair'
-import { useQuery } from '@tanstack/react-query'
+import { CampaignIdInfoDetail, CampaignIdInfoResponse } from 'views/TradingReward/hooks/useCampaignIdInfo'
+import { useAccount } from 'wagmi'
+
+interface RankListResponse {
+  data: {
+    estimateReward: string
+  }
+}
 
 interface UserCampaignInfoResponse {
   id: string
@@ -49,9 +55,10 @@ const useAllUserCampaignInfo = ({ campaignIds, type }: UseAllUserCampaignInfoPro
       ? getTradingRewardAddress(ChainId.BSC)
       : getTradingRewardTopTradesAddress(ChainId.BSC)
 
-  const { data: allUserCampaignInfoData, isLoading } = useQuery(
-    ['tradingReward', 'all-campaign-id-info', account, campaignIds, type],
-    async () => {
+  const { data: allUserCampaignInfoData, isPending } = useQuery({
+    queryKey: ['tradingReward', 'all-campaign-id-info', account, campaignIds, type],
+
+    queryFn: async () => {
       try {
         const allUserCampaignInfo = await Promise.all(
           campaignIds.map(async (campaignId: string) => {
@@ -67,6 +74,16 @@ const useAllUserCampaignInfo = ({ campaignIds, type }: UseAllUserCampaignInfoPro
 
             const userCampaignInfo: CampaignIdInfoResponse = userCampaignInfoResult.data
             const userInfoQualification: UserCampaignInfoResponse = userInfoQualificationResult.data
+
+            let newCakeStakersTotalEstimateRewardUSD = 0
+            if (type === RewardType.CAKE_STAKERS) {
+              const response = await fetch(
+                `${TRADING_REWARD_API}/campaign/userEstimate/campaignId/${campaignId}/address/${account}/type/${RewardType.CAKE_STAKERS}`,
+              )
+              const result: RankListResponse = await response.json()
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+              newCakeStakersTotalEstimateRewardUSD = new BigNumber(result.data.estimateReward).toNumber()
+            }
 
             const totalVolume = userCampaignInfo.tradingFeeArr
               .map((i) => i.volume)
@@ -102,7 +119,7 @@ const useAllUserCampaignInfo = ({ campaignIds, type }: UseAllUserCampaignInfoPro
               abi: tradingRewardABI,
               address: tradingRewardAddress,
               functionName: 'userClaimedIncentives',
-              args: [campaignId, account],
+              args: [campaignId, account ?? '0x'],
             })
 
             const canClaimResult = await bscClient.multicall({
@@ -112,7 +129,7 @@ const useAllUserCampaignInfo = ({ campaignIds, type }: UseAllUserCampaignInfoPro
             const totalCanClaimData = canClaimResult
               ? canClaimResult
                   .map((canClaim) => (canClaim.result ? canClaim.result : 0n))
-                  .reduce((a, b) => a + b, 0n)
+                  .reduce((a, b) => BigInt(Number(a) + Number(b)), 0n)
                   .toString() ?? '0'
               : '0'
 
@@ -121,7 +138,8 @@ const useAllUserCampaignInfo = ({ campaignIds, type }: UseAllUserCampaignInfoPro
               ...userInfoQualification,
               campaignId,
               totalVolume,
-              totalEstimateRewardUSD,
+              totalEstimateRewardUSD:
+                type === RewardType.CAKE_STAKERS ? newCakeStakersTotalEstimateRewardUSD : totalEstimateRewardUSD,
               totalTradingFee,
               canClaim: totalCanClaimData,
               userClaimedIncentives,
@@ -135,15 +153,14 @@ const useAllUserCampaignInfo = ({ campaignIds, type }: UseAllUserCampaignInfoPro
         return []
       }
     },
-    {
-      refetchInterval: SLOW_INTERVAL,
-      initialData: [],
-      enabled: Boolean(campaignIds.length > 0 && account && type),
-    },
-  )
+
+    refetchInterval: SLOW_INTERVAL,
+    initialData: [],
+    enabled: Boolean(campaignIds.length > 0 && account && type),
+  })
 
   return {
-    isFetching: isLoading,
+    isFetching: isPending,
     data: allUserCampaignInfoData,
   }
 }

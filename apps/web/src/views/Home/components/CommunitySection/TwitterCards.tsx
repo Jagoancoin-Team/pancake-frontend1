@@ -72,13 +72,18 @@ export const useTweetsData = () => {
   return useMemo(() => {
     return [
       {
-        tweet: `🐰💙PancakeSwap Fam, the moment is here!
-🥞Proposal to reduce the max supply of $CAKE from 750M to 450M!
-🌟By reducing our token supply by 300,000,000 $CAKE, we signify PancakeSwap’s successful shift from a high-inflation emissions model to the Ultrasound CAKE era.`,
-        link: 'https://x.com/PancakeSwap/status/1740281555887825335?s=20',
-        date: 'Dec 28',
-        like: '1.3k',
-        impression: '179k',
+        tweet: `📢Say hello to PancakeSwap v4
+🪝Hooks
+🔗Custom Pool Types & Donate
+⛽️Gas Optimization via Singleton & Flash Accounting
+🧑‍💻Codebase Open-Source Licensing
+➡️Coming to Ethereum and BNB Chain in Q3
+📚Read more: https://bit.ly/48QgtgN
+`,
+        link: 'https://x.com/PancakeSwap/status/1768623187959672871?s=20',
+        date: 'Mar 15',
+        like: '0.5k',
+        impression: '54k',
       },
     ]
   }, [])

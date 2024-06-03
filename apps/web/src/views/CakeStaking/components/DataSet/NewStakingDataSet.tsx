@@ -1,6 +1,6 @@
 import { useTranslation } from '@pancakeswap/localization'
 import { AutoRow, Box, Text, TooltipText, useMatchBreakpoints } from '@pancakeswap/uikit'
-import { getBalanceAmount, getFullDisplayBalance } from '@pancakeswap/utils/formatBalance'
+import { getDecimalAmount, getFullDisplayBalance } from '@pancakeswap/utils/formatBalance'
 import BN from 'bignumber.js'
 import { WEEK } from 'config/constants/veCake'
 import dayjs from 'dayjs'
@@ -13,6 +13,7 @@ import { useVeCakeAmount } from 'views/CakeStaking/hooks/useVeCakeAmount'
 import { MyVeCakeCard } from '../MyVeCakeCard'
 import { Tooltips } from '../Tooltips'
 import { DataRow } from './DataBox'
+import { TotalApy } from './TotalApy'
 import { formatDate } from './format'
 
 const ValueText = styled(Text)`
@@ -20,36 +21,47 @@ const ValueText = styled(Text)`
   font-weight: 400;
 `
 
-export const NewStakingDataSet: React.FC<{
+interface NewStakingDataSetProps {
   cakeAmount?: number
-}> = ({ cakeAmount = 0 }) => {
+  customVeCakeCard?: JSX.Element
+  customDataRow?: JSX.Element
+}
+
+export const NewStakingDataSet: React.FC<React.PropsWithChildren<NewStakingDataSetProps>> = ({
+  cakeAmount = 0,
+  customVeCakeCard,
+  customDataRow,
+}) => {
   const { t } = useTranslation()
   const { cakeLockWeeks } = useLockCakeData()
+  const { isDesktop } = useMatchBreakpoints()
+
   const unlockTimestamp = useTargetUnlockTime(Number(cakeLockWeeks) * WEEK)
-  const cakeAmountBN = useMemo(() => getBalanceAmount(new BN(cakeAmount)).toString(), [cakeAmount])
+  const cakeAmountBN = useMemo(() => getDecimalAmount(new BN(cakeAmount)).toString(), [cakeAmount])
   const veCakeAmountFromNative = useVeCakeAmount(cakeAmountBN, unlockTimestamp)
   const { balance: proxyVeCakeBalance } = useProxyVeCakeBalance()
   const veCakeAmount = useMemo(
     () => proxyVeCakeBalance.plus(veCakeAmountFromNative),
     [proxyVeCakeBalance, veCakeAmountFromNative],
   )
+
   const veCake = veCakeAmount ? getFullDisplayBalance(new BN(veCakeAmount), 18, 3) : '0'
   const factor =
     veCakeAmountFromNative && veCakeAmountFromNative
       ? `${new BN(veCakeAmountFromNative).div(cakeAmountBN).toPrecision(2)}x`
       : '0x'
-  const { isDesktop } = useMatchBreakpoints()
-  const unlockOn = useMemo(() => {
-    return formatDate(dayjs.unix(Number(unlockTimestamp)))
-  }, [unlockTimestamp])
+  const unlockOn = useMemo(() => formatDate(dayjs.unix(Number(unlockTimestamp))), [unlockTimestamp])
+
   return (
     <>
       <Text fontSize={12} bold color={isDesktop ? 'textSubtle' : undefined} textTransform="uppercase">
         {t('lock overview')}
       </Text>
       <Box padding={['16px 0', '16px 0', 12]}>
-        <MyVeCakeCard type="row" value={veCake} />
+        {customVeCakeCard ?? <MyVeCakeCard type="row" value={veCake} />}
         <AutoRow px={['0px', '0px', '16px']} py={['16px', '16px', '12px']} gap="8px">
+          {customDataRow}
+          <TotalApy veCake={veCake} cakeAmount={cakeAmount} cakeLockWeeks={cakeLockWeeks} />
           <DataRow
             label={
               <Text fontSize={14} color="textSubtle" textTransform="uppercase">

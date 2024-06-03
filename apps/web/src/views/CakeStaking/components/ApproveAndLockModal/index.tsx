@@ -1,8 +1,9 @@
 import { useTranslation } from '@pancakeswap/localization'
-import { BscScanIcon, Modal, ModalProps, ModalV2, ScanLink, UseModalV2Props } from '@pancakeswap/uikit'
+import { AutoColumn, BscScanIcon, Modal, ModalProps, ModalV2, ScanLink, UseModalV2Props } from '@pancakeswap/uikit'
 import { useActiveChainId } from 'hooks/useActiveChainId'
 import { ApproveAndLockStatus } from 'state/vecake/atoms'
 import { getBlockExploreLink } from 'utils'
+import { TxErrorModalContent } from 'views/CakeStaking/components/ApproveAndLockModal/TxErrorModalContent'
 import { LockInfo } from './LockInfo'
 import { PendingModalContent } from './PendingModalContent'
 import { StepsIndicator } from './StepsIndicator'
@@ -69,7 +70,6 @@ export const ApproveAndLockModal: React.FC<ApproveAndLockModalProps> = ({
             {!cakeLockApproved ? <StepsIndicator currentStep={status} /> : null}
           </>
         ) : null}
-
         {[
           ApproveAndLockStatus.LOCK_CAKE_PENDING,
           ApproveAndLockStatus.INCREASE_WEEKS_PENDING,
@@ -77,25 +77,28 @@ export const ApproveAndLockModal: React.FC<ApproveAndLockModalProps> = ({
         ].includes(status) ? (
           <TxSubmittedModalContent title={t('Transaction Submitted')} subTitle={lockInfo} />
         ) : null}
-
-        {status === ApproveAndLockStatus.INCREASE_AMOUNT ? (
+        {[ApproveAndLockStatus.INCREASE_AMOUNT, ApproveAndLockStatus.INCREASE_WEEKS].includes(status) ? (
           <PendingModalContent title={t('Confirm Lock')} subTitle={lockInfo} />
         ) : null}
-        {status === ApproveAndLockStatus.INCREASE_WEEKS ? (
-          <PendingModalContent title={t('Confirm Lock')} subTitle={lockInfo} />
-        ) : null}
-
         {status === ApproveAndLockStatus.UNLOCK_CAKE ? <PendingModalContent title={t('Confirm unlock')} /> : null}
-
         {status === ApproveAndLockStatus.MIGRATE ? <PendingModalContent title={t('Confirm migrate')} /> : null}
-
         {[ApproveAndLockStatus.UNLOCK_CAKE_PENDING, ApproveAndLockStatus.MIGRATE_PENDING].includes(status) ? (
           <TxSubmittedModalContent title={t('Transaction Submitted')} />
         ) : null}
-
+        {status === ApproveAndLockStatus.ERROR ? (
+          <TxErrorModalContent
+            title={t('Transaction failed. For detailed error message:')}
+            subTitle={
+              <AutoColumn gap="16px">
+                {scanLink} {lockInfo}
+              </AutoColumn>
+            }
+          />
+        ) : null}
         {status === ApproveAndLockStatus.CONFIRMED ? (
           <TxSubmittedModalContent title={t('Transaction receipt:')} subTitle={scanLink} />
         ) : null}
+        {status === ApproveAndLockStatus.REJECT ? <TxErrorModalContent title={t('Transaction rejected')} /> : null}
       </SeamlessModal>
     </ModalV2>
   )

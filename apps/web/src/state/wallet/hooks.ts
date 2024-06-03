@@ -6,8 +6,8 @@ import orderBy from 'lodash/orderBy'
 import { useMemo } from 'react'
 import { safeGetAddress } from 'utils'
 import { getMulticallAddress } from 'utils/addressHelpers'
-import { Address, isAddress } from 'viem'
-import { erc20ABI, useAccount } from 'wagmi'
+import { Address, erc20Abi, getAddress, isAddress } from 'viem'
+import { useAccount } from 'wagmi'
 import { useMultipleContractSingleData, useSingleContractMultipleData } from '../multicall/hooks'
 
 /**
@@ -57,14 +57,14 @@ export function useTokenBalancesWithLoadingIndicator(
   tokens?: (Token | undefined)[],
 ): [{ [tokenAddress: string]: CurrencyAmount<Token> | undefined }, boolean] {
   const validatedTokens: Token[] = useMemo(
-    () => tokens?.filter((t?: Token): t is Token => t && isAddress(t.address)) ?? [],
+    () => tokens?.filter((t?: Token): t is Token => isAddress(t?.address || '')) ?? [],
     [tokens],
   )
 
   const validatedTokenAddresses = useMemo(() => validatedTokens.map((vt) => vt.address), [validatedTokens])
 
   const balances = useMultipleContractSingleData({
-    abi: erc20ABI,
+    abi: erc20Abi,
     addresses: validatedTokenAddresses,
     functionName: 'balanceOf',
     args: useMemo(() => [address as Address] as const, [address]),
@@ -116,7 +116,7 @@ export function useCurrencyBalances(
   currencies?: (Currency | undefined | null)[],
 ): (CurrencyAmount<Currency> | undefined)[] {
   const tokens = useMemo(
-    () => currencies?.filter((currency): currency is Token => currency?.isToken) ?? [],
+    () => currencies?.filter((currency): currency is Token => Boolean(currency?.isToken)) ?? [],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [...(currencies ?? [])],
   )
@@ -135,7 +135,7 @@ export function useCurrencyBalances(
       currencies?.map((currency) => {
         if (!account || !currency) return undefined
         if (currency?.isToken) return tokenBalances[currency.address]
-        if (currency?.isNative) return nativeBalance[account]
+        if (currency?.isNative) return nativeBalance[account] || nativeBalance[getAddress(account)]
         return undefined
       }) ?? [],
     // eslint-disable-next-line react-hooks/exhaustive-deps

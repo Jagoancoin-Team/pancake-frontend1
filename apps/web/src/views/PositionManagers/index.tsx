@@ -1,7 +1,8 @@
 import Page from 'components/Layout/Page'
 
+import { V3SubgraphHealthIndicator } from 'components/SubgraphHealthIndicator'
 import { Header } from './components'
-import { VaultCards, Controls } from './containers'
+import { Controls, VaultContent } from './containers'
 
 export function PositionManagers() {
   return (
@@ -9,7 +10,8 @@ export function PositionManagers() {
       <Header />
       <Page>
         <Controls />
-        <VaultCards />
+        <VaultContent />
+        <V3SubgraphHealthIndicator />
       </Page>
     </>
   )

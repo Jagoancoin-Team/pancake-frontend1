@@ -3,69 +3,69 @@ import { CommonBasesType } from 'components/SearchModal/types'
 import { Currency, CurrencyAmount, Percent } from '@pancakeswap/sdk'
 import {
   AutoColumn,
-  Button,
-  RowBetween,
-  Text,
   AutoRow,
   Box,
-  useModal,
+  Button,
+  DynamicSection,
+  Flex,
   Message,
   MessageText,
   PreTitle,
-  DynamicSection,
-  Flex,
+  RowBetween,
+  Text,
+  useModal,
 } from '@pancakeswap/uikit'
 import {
+  ConfirmationModalContent,
   LiquidityChartRangeInput,
+  NumericalInput,
   ZOOM_LEVELS,
   ZoomLevels,
-  ConfirmationModalContent,
-  NumericalInput,
 } from '@pancakeswap/widgets-internal'
 
-import { logGTMClickAddLiquidityEvent } from 'utils/customGTMEventTracking'
 import { tryParsePrice } from 'hooks/v3/utils'
+import { logGTMClickAddLiquidityEvent } from 'utils/customGTMEventTracking'
 
-import useV3DerivedInfo from 'hooks/v3/useV3DerivedInfo'
+import { useIsExpertMode, useUserSlippage } from '@pancakeswap/utils/user'
 import { FeeAmount, NonfungiblePositionManager } from '@pancakeswap/v3-sdk'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import useTransactionDeadline from 'hooks/useTransactionDeadline'
 import CurrencyInputPanel from 'components/CurrencyInputPanel'
-import { useUserSlippage, useIsExpertMode } from '@pancakeswap/utils/user'
+import { useTransactionDeadline } from 'hooks/useTransactionDeadline'
+import useV3DerivedInfo from 'hooks/v3/useV3DerivedInfo'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
-import { maxAmountSpend } from 'utils/maxAmountSpend'
-import { basisPointsToPercent } from 'utils/exchange'
-import { Field } from 'state/mint/actions'
 import { ApprovalState, useApproveCallback } from 'hooks/useApproveCallback'
+import { Field } from 'state/mint/actions'
+import { basisPointsToPercent } from 'utils/exchange'
+import { maxAmountSpend } from 'utils/maxAmountSpend'
 
-import { useTransactionAdder } from 'state/transactions/hooks'
-import { useV3NFTPositionManagerContract } from 'hooks/useContract'
-import { useRouter } from 'next/router'
-import { useIsTransactionUnsupported, useIsTransactionWarning } from 'hooks/Trades'
-import useActiveWeb3React from 'hooks/useActiveWeb3React'
 import { useTranslation } from '@pancakeswap/localization'
-import { useSendTransaction, useWalletClient } from 'wagmi'
-import { styled } from 'styled-components'
 import TransactionConfirmationModal from 'components/TransactionConfirmationModal'
 import { Bound } from 'config/constants/types'
-import { V3SubmitButton } from 'views/AddLiquidityV3/components/V3SubmitButton'
-import { formatCurrencyAmount, formatRawAmount } from 'utils/formatCurrencyAmount'
-import { QUICK_ACTION_CONFIGS } from 'views/AddLiquidityV3/types'
-import { isUserRejected } from 'utils/sentry'
-import { hexToBigInt } from 'viem'
-import { getViemClients } from 'utils/viem'
+import { useIsTransactionUnsupported, useIsTransactionWarning } from 'hooks/Trades'
+import useActiveWeb3React from 'hooks/useActiveWeb3React'
+import { useV3NFTPositionManagerContract } from 'hooks/useContract'
+import { useRouter } from 'next/router'
+import { useTransactionAdder } from 'state/transactions/hooks'
+import { styled } from 'styled-components'
 import { calculateGasMargin } from 'utils'
+import { formatCurrencyAmount, formatRawAmount } from 'utils/formatCurrencyAmount'
+import { isUserRejected } from 'utils/sentry'
+import { getViemClients } from 'utils/viem'
+import { hexToBigInt } from 'viem'
+import { V3SubmitButton } from 'views/AddLiquidityV3/components/V3SubmitButton'
+import { QUICK_ACTION_CONFIGS } from 'views/AddLiquidityV3/types'
+import { useSendTransaction, useWalletClient } from 'wagmi'
 
-import { useDensityChartData } from 'views/AddLiquidityV3/hooks/useDensityChartData'
 import { transactionErrorToUserReadableMessage } from 'utils/transactionErrorToUserReadableMessage'
-import RangeSelector from './components/RangeSelector'
-import { PositionPreview } from './components/PositionPreview'
-import RateToggle from './components/RateToggle'
+import { useDensityChartData } from 'views/AddLiquidityV3/hooks/useDensityChartData'
 import LockedDeposit from './components/LockedDeposit'
+import { PositionPreview } from './components/PositionPreview'
+import RangeSelector from './components/RangeSelector'
+import RateToggle from './components/RateToggle'
+import { useInitialRange } from './form/hooks/useInitialRange'
 import { useRangeHopCallbacks } from './form/hooks/useRangeHopCallbacks'
 import { useV3MintActionHandlers } from './form/hooks/useV3MintActionHandlers'
 import { useV3FormAddLiquidityCallback, useV3FormState } from './form/reducer'
-import { useInitialRange } from './form/hooks/useInitialRange'
 
 const StyledInput = styled(NumericalInput)`
   background-color: ${({ theme }) => theme.colors.input};
@@ -103,11 +103,11 @@ export const RightContainer = styled(AutoColumn)`
 `
 
 interface V3FormViewPropsType {
-  baseCurrency: Currency
-  quoteCurrency: Currency
-  currencyIdA: string
-  currencyIdB: string
-  feeAmount: number
+  baseCurrency?: Currency | null
+  quoteCurrency?: Currency | null
+  currencyIdA?: string
+  currencyIdB?: string
+  feeAmount?: number
 }
 
 export default function V3FormView({
@@ -156,6 +156,7 @@ export default function V3FormView({
     depositBDisabled,
     invertPrice,
     ticksAtLimit,
+    tickSpaceLimits,
   } = useV3DerivedInfo(
     baseCurrency ?? undefined,
     quoteCurrency ?? undefined,
@@ -186,7 +187,7 @@ export default function V3FormView({
 
   const onRightRangePriceInput = useCallback(
     (rightRangeValue: string) => {
-      onRightRangeInput(tryParsePrice(baseCurrency?.wrapped, quoteCurrency.wrapped, rightRangeValue))
+      onRightRangeInput(tryParsePrice(baseCurrency?.wrapped, quoteCurrency?.wrapped, rightRangeValue))
     },
     [baseCurrency, quoteCurrency, onRightRangeInput],
   )
@@ -216,7 +217,7 @@ export default function V3FormView({
   const onAddLiquidityCallback = useV3FormAddLiquidityCallback()
 
   // txn values
-  const deadline = useTransactionDeadline() // custom from users settings
+  const [deadline] = useTransactionDeadline() // custom from users settings
   const [txHash, setTxHash] = useState<string>('')
   // get formatted amounts
   const formattedAmounts = {
@@ -260,6 +261,11 @@ export default function V3FormView({
       return
     }
 
+    if (position?.liquidity === 0n) {
+      setTxnErrorMessage(t('The liquidity of this position is 0. Please try increasing the amount.'))
+      return
+    }
+
     if (position && account && deadline) {
       const useNative = baseCurrency.isNative ? baseCurrency : quoteCurrency.isNative ? quoteCurrency : undefined
 
@@ -285,7 +291,7 @@ export default function V3FormView({
             ...txn,
             gas: calculateGasMargin(gas),
           })
-            .then((response) => {
+            .then((hash) => {
               const baseAmount = formatRawAmount(
                 parsedAmounts[Field.CURRENCY_A]?.quotient?.toString() ?? '0',
                 baseCurrency.decimals,
@@ -298,12 +304,15 @@ export default function V3FormView({
               )
 
               setAttemptingTxn(false)
-              addTransaction(response, {
-                type: 'add-liquidity-v3',
-                summary: `Add ${baseAmount} ${baseCurrency?.symbol} and ${quoteAmount} ${quoteCurrency?.symbol}`,
-              })
-              setTxHash(response.hash)
-              onAddLiquidityCallback(response.hash)
+              addTransaction(
+                { hash },
+                {
+                  type: 'add-liquidity-v3',
+                  summary: `Add ${baseAmount} ${baseCurrency?.symbol} and ${quoteAmount} ${quoteCurrency?.symbol}`,
+                },
+              )
+              setTxHash(hash)
+              onAddLiquidityCallback(hash)
             })
             .catch((error) => {
               console.error('Failed to send transaction', error)
@@ -340,6 +349,7 @@ export default function V3FormView({
       onFieldAInput('')
     }
     setTxHash('')
+    setTxnErrorMessage(undefined)
   }, [onFieldAInput, txHash])
   const addIsUnsupported = useIsTransactionUnsupported(currencies?.CURRENCY_A, currencies?.CURRENCY_B)
 
@@ -472,15 +482,15 @@ export default function V3FormView({
       if (currentPrice) {
         onBothRangeInput({
           leftTypedValue: tryParsePrice(
-            baseCurrency.wrapped,
-            quoteCurrency.wrapped,
+            baseCurrency?.wrapped,
+            quoteCurrency?.wrapped,
             (
               currentPrice * (zoomLevel?.initialMin ?? ZOOM_LEVELS[feeAmount ?? FeeAmount.MEDIUM].initialMin)
             ).toString(),
           ),
           rightTypedValue: tryParsePrice(
-            baseCurrency.wrapped,
-            quoteCurrency.wrapped,
+            baseCurrency?.wrapped,
+            quoteCurrency?.wrapped,
             (
               currentPrice * (zoomLevel?.initialMax ?? ZOOM_LEVELS[feeAmount ?? FeeAmount.MEDIUM].initialMax)
             ).toString(),
@@ -599,7 +609,7 @@ export default function V3FormView({
                       pathname: router.pathname,
                       query: {
                         ...router.query,
-                        currency: [currencyIdB, currencyIdA, feeAmount ? feeAmount.toString() : ''],
+                        currency: [currencyIdB!, currencyIdA!, feeAmount ? feeAmount.toString() : ''],
                       },
                     },
                     undefined,
@@ -627,12 +637,17 @@ export default function V3FormView({
                       {invertPrice ? price.invert().toSignificant(6) : price.toSignificant(6)}
                     </Text>
                     <Text color="text2" fontSize={12}>
-                      {quoteCurrency?.symbol} per {baseCurrency.symbol}
+                      {t('%assetA% per %assetB%', {
+                        assetA: quoteCurrency?.symbol ?? '',
+                        assetB: baseCurrency.symbol ?? '',
+                      })}
                     </Text>
                   </AutoRow>
                 )}
                 <LiquidityChartRangeInput
-                  zoomLevel={activeQuickAction ? QUICK_ACTION_CONFIGS?.[feeAmount]?.[activeQuickAction] : undefined}
+                  zoomLevel={
+                    activeQuickAction && feeAmount ? QUICK_ACTION_CONFIGS?.[feeAmount]?.[activeQuickAction] : undefined
+                  }
                   key={baseCurrency?.wrapped?.address}
                   currencyA={baseCurrency ?? undefined}
                   currencyB={quoteCurrency ?? undefined}
@@ -667,6 +682,7 @@ export default function V3FormView({
               currencyB={quoteCurrency}
               feeAmount={feeAmount}
               ticksAtLimit={ticksAtLimit}
+              tickSpaceLimits={tickSpaceLimits}
             />
             {showCapitalEfficiencyWarning ? (
               <Message variant="warning">
@@ -690,7 +706,8 @@ export default function V3FormView({
               </Message>
             ) : (
               <Flex justifyContent="space-between" width="100%" style={{ gap: '8px' }}>
-                {QUICK_ACTION_CONFIGS[feeAmount] &&
+                {feeAmount &&
+                  QUICK_ACTION_CONFIGS[feeAmount] &&
                   Object.entries<ZoomLevels>(QUICK_ACTION_CONFIGS[feeAmount])
                     ?.sort(([a], [b]) => +a - +b)
                     .map(([quickAction, zoomLevel]) => {

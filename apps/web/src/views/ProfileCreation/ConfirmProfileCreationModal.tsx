@@ -1,20 +1,20 @@
 import { useTranslation } from '@pancakeswap/localization'
+import { bscTokens } from '@pancakeswap/tokens'
 import { Flex, Modal, Text, useToast } from '@pancakeswap/uikit'
 import ApproveConfirmButtons from 'components/ApproveConfirmButtons'
 import { ToastDescriptionWithTx } from 'components/Toast'
-import { bscTokens } from '@pancakeswap/tokens'
-import { formatUnits } from 'viem'
 import useApproveConfirmTransaction from 'hooks/useApproveConfirmTransaction'
 import { useCallWithGasPrice } from 'hooks/useCallWithGasPrice'
 import { useProfileContract } from 'hooks/useContract'
 import { useProfile } from 'state/profile/hooks'
+import { formatUnits } from 'viem'
 import { REGISTER_COST } from './config'
 import { State } from './contexts/types'
 
 interface Props {
   userName: string
   selectedNft: State['selectedNft']
-  teamId: number
+  teamId?: number
   allowance: bigint
   onDismiss?: () => void
 }
@@ -32,15 +32,18 @@ const ConfirmProfileCreationModal: React.FC<React.PropsWithChildren<Props>> = ({
       spender: profileContract.address,
       minAmount: REGISTER_COST,
       onConfirm: () => {
-        return callWithGasPrice(profileContract, 'createProfile', [
-          BigInt(teamId),
-          selectedNft.collectionAddress,
-          BigInt(selectedNft.tokenId),
-        ])
+        if (selectedNft.collectionAddress)
+          return callWithGasPrice(profileContract, 'createProfile', [
+            teamId ? BigInt(teamId) : 0n,
+            selectedNft.collectionAddress,
+            BigInt(selectedNft.tokenId!),
+          ])
+
+        return undefined
       },
       onSuccess: async ({ receipt }) => {
         refreshProfile()
-        onDismiss()
+        onDismiss?.()
         toastSuccess(t('Profile created!'), <ToastDescriptionWithTx txHash={receipt.transactionHash} />)
       },
     })

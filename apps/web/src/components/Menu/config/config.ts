@@ -4,8 +4,8 @@ import { SUPPORTED_CHAIN_IDS as POOL_SUPPORTED_CHAINS } from '@pancakeswap/pools
 import { SUPPORTED_CHAIN_IDS as POSITION_MANAGERS_SUPPORTED_CHAINS } from '@pancakeswap/position-managers'
 import { SUPPORTED_CHAIN_IDS as PREDICTION_SUPPORTED_CHAINS } from '@pancakeswap/prediction'
 import {
-  DropdownMenuItemType,
   DropdownMenuItems,
+  DropdownMenuItemType,
   EarnFillIcon,
   EarnIcon,
   MenuItemsType,
@@ -13,17 +13,19 @@ import {
   NftFillIcon,
   NftIcon,
   PancakeProtectorIcon,
+  ShoppingBasketFilledIcon,
+  ShoppingBasketIcon,
   SwapFillIcon,
   SwapIcon,
 } from '@pancakeswap/uikit'
 import {
   FIXED_STAKING_SUPPORTED_CHAINS,
   LIQUID_STAKING_SUPPORTED_CHAINS,
-  SUPPORT_BUY_CRYPTO,
   SUPPORT_CAKE_STAKING,
   SUPPORT_FARMS,
   SUPPORT_ONLY_BSC,
 } from 'config/constants/supportChains'
+import { getOptionsUrl } from 'utils/getOptionsUrl'
 import { getPerpetualUrl } from 'utils/getPerpetualUrl'
 import { nftsBaseUrl } from 'views/Nft/market/constants'
 
@@ -74,7 +76,13 @@ const config: (
             languageCode,
             isDark,
           }),
-          confirmModalId: 'usCitizenConfirmModal',
+          confirmModalId: 'perpConfirmModal',
+          type: DropdownMenuItemType.EXTERNAL_LINK,
+        },
+        {
+          label: t('Options'),
+          href: getOptionsUrl(),
+          confirmModalId: 'optionsConfirmModal',
           type: DropdownMenuItemType.EXTERNAL_LINK,
         },
         {
@@ -83,15 +91,10 @@ const config: (
           type: DropdownMenuItemType.EXTERNAL_LINK,
         },
         {
-          label: `${t('Limit')} (V2)`,
+          label: `${t('Limit')} (Deprecated)`,
           href: '/limit-orders',
           supportChainIds: SUPPORT_ONLY_BSC,
           image: '/images/decorations/3d-coin.png',
-        },
-        {
-          label: t('Buy Crypto'),
-          href: '/buy-crypto',
-          supportChainIds: SUPPORT_BUY_CRYPTO,
         },
         {
           label: t('Trading Reward'),
@@ -99,6 +102,14 @@ const config: (
           hideSubNav: true,
         },
       ].map((item) => addMenuItemSupported(item, chainId)),
+    },
+    {
+      label: t('Buy'),
+      href: '/buy-crypto',
+      icon: ShoppingBasketIcon,
+      fillIcon: ShoppingBasketFilledIcon,
+      showItemsOnMobile: false,
+      items: [],
     },
     {
       label: t('Earn'),
@@ -192,6 +203,12 @@ const config: (
       ],
     },
     {
+      label: t('v4'),
+      href: '/v4',
+      showOnMobile: false,
+      items: [],
+    },
+    {
       label: '',
       href: '/info',
       icon: MoreIcon,
@@ -238,6 +255,11 @@ const config: (
           label: t('Docs'),
           href: 'https://docs.pancakeswap.finance',
           type: DropdownMenuItemType.EXTERNAL_LINK,
+        },
+        {
+          label: t('v4'),
+          href: '/v4',
+          isMobileOnly: true,
         },
       ].map((item) => addMenuItemSupported(item, chainId)),
     },

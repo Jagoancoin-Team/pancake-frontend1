@@ -1,25 +1,24 @@
-import { useTranslation } from '@pancakeswap/localization'
 import { ChainId } from '@pancakeswap/chains'
+import { useTranslation } from '@pancakeswap/localization'
 import { AutoRenewIcon, Button, Card, CardBody, Heading, Skeleton, Text, useToast } from '@pancakeswap/uikit'
 import { NextLinkFromReactRouter } from '@pancakeswap/widgets-internal'
 
 import { pancakeProfileABI } from 'config/abi/pancakeProfile'
 import { useCallWithGasPrice } from 'hooks/useCallWithGasPrice'
 import useCatchTxError from 'hooks/useCatchTxError'
-import { useContext, useEffect, useState } from 'react'
-import { NftLocation } from 'state/nftMarket/types'
+import { useEffect, useState } from 'react'
+import { NftLocation, NftToken } from 'state/nftMarket/types'
 import { useProfile } from 'state/profile/hooks'
 import { styled } from 'styled-components'
 import { getPancakeProfileAddress } from 'utils/addressHelpers'
 import { getErc721Contract, getProfileContract } from 'utils/contractHelpers'
 import { publicClient } from 'utils/wagmi'
-import { ContractFunctionResult } from 'viem'
 import { nftsBaseUrl } from 'views/Nft/market/constants'
 import { useAccount, useWalletClient } from 'wagmi'
 import { useNftsForAddress } from '../Nft/market/hooks/useNftsForAddress'
-import { ProfileCreationContext } from './contexts/ProfileCreationProvider'
 import NextStepButton from './NextStepButton'
 import SelectionCard from './SelectionCard'
+import useProfileCreation from './contexts/hook'
 
 const Link = styled(NextLinkFromReactRouter)`
   color: ${({ theme }) => theme.colors.primary};
@@ -33,11 +32,15 @@ const ProfilePicture: React.FC = () => {
   const { address: account } = useAccount()
   const [isApproved, setIsApproved] = useState(false)
   const [isProfileNftsLoading, setIsProfileNftsLoading] = useState(true)
-  const [userProfileCreationNfts, setUserProfileCreationNfts] = useState(null)
-  const { selectedNft, actions } = useContext(ProfileCreationContext)
+  const [userProfileCreationNfts, setUserProfileCreationNfts] = useState<NftToken[] | null>(null)
+  const { selectedNft, actions } = useProfileCreation()
 
-  const { isLoading: isProfileLoading, profile } = useProfile()
-  const { nfts, isLoading: isUserNftLoading } = useNftsForAddress(account, profile, isProfileLoading)
+  const { isLoading: isProfileFetching, profile } = useProfile()
+  const { nfts, isLoading: isUserNftLoading } = useNftsForAddress({
+    account: account || '',
+    profile,
+    isProfileFetching,
+  })
 
   useEffect(() => {
     const fetchUserPancakeCollectibles = async () => {
@@ -52,7 +55,7 @@ const ProfilePicture: React.FC = () => {
         if (nftsByCollection.length > 0) {
           const profileContract = getProfileContract()
           const nftRole = await profileContract.read.NFT_ROLE()
-          const collectionRoles = (await publicClient({ chainId: ChainId.BSC }).multicall({
+          const collectionRoles = await publicClient({ chainId: ChainId.BSC }).multicall({
             contracts: nftsByCollection.map((collectionAddress) => {
               return {
                 abi: pancakeProfileABI,
@@ -62,7 +65,7 @@ const ProfilePicture: React.FC = () => {
               }
             }),
             allowFailure: false,
-          })) as ContractFunctionResult<typeof pancakeProfileABI, 'hasRole'>[]
+          })
 
           setUserProfileCreationNfts(
             nfts.filter((nft) => collectionRoles[nftsByCollection.indexOf(nft.collectionAddress)]),
@@ -90,9 +93,11 @@ const ProfilePicture: React.FC = () => {
   const { data: walletClient } = useWalletClient()
 
   const handleApprove = async () => {
-    const contract = getErc721Contract(selectedNft.collectionAddress, walletClient)
+    if (!walletClient) return
+
+    const contract = getErc721Contract(selectedNft.collectionAddress!, walletClient)
     const receipt = await fetchWithCatchTxError(() => {
-      return callWithGasPrice(contract, 'approve', [getPancakeProfileAddress(), BigInt(selectedNft.tokenId)])
+      return callWithGasPrice(contract, 'approve', [getPancakeProfileAddress(), BigInt(selectedNft.tokenId!)])
     })
     if (receipt?.status) {
       toastSuccess(t('Enabled'), t('Please progress to the next step.'))

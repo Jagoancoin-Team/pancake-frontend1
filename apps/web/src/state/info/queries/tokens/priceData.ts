@@ -4,22 +4,25 @@ import orderBy from 'lodash/orderBy'
 
 import { PriceChartEntry } from 'state/info/types'
 import { getBlocksFromTimestamps } from 'utils/getBlocksFromTimestamps'
-import { multiQuery } from 'views/Info/utils/infoQueryHelpers'
-import {
-  MultiChainName,
-  multiChainQueryMainToken,
-  checkIsStableSwap,
-  getMultiChainQueryEndPointWithStableSwap,
-} from '../../constant'
+import { multiQuery } from 'utils/infoQueryHelpers'
+import { MultiChainName, checkIsStableSwap, getMultiChainQueryEndPointWithStableSwap } from '../../constant'
+
+interface FormattedHistory {
+  time: number
+  open: number
+  close: number
+  high: number
+  low: number
+}
 
 const getPriceSubqueries = (chainName: MultiChainName, tokenAddress: string, blocks: any) =>
   blocks.map(
     (block: any) => `
       t${block.timestamp}:token(id:"${tokenAddress}", block: { number: ${block.number} }) {
-        derived${multiChainQueryMainToken[chainName]}
+        derivedETH
       }
       b${block.timestamp}: bundle(id:"1", block: { number: ${block.number} }) {
-        ${multiChainQueryMainToken[chainName].toLowerCase()}Price
+        ethPrice
       }
     `,
   )
@@ -46,7 +49,7 @@ const fetchTokenPriceData = async (
 }> => {
   // Construct timestamps to query against
   const endTimestamp = dayjs().unix()
-  const timestamps = []
+  const timestamps: number[] = []
   let time = startTimestamp
   while (time <= endTimestamp) {
     timestamps.push(time)
@@ -58,7 +61,7 @@ const fetchTokenPriceData = async (
     if (blocksLength > 0 && chainName === 'BSC' && !checkIsStableSwap()) {
       const data = blocks[blocksLength - 1]
       blocks[blocksLength - 1] = { timestamp: data.timestamp, number: data.number - 32 }
-      // nodeReal will sync the the 32 block before latest
+      // nodeReal will sync the 32 block before latest
     }
     if (!blocks || blocksLength === 0) {
       console.error('Error fetching blocks for timestamps', timestamps)
@@ -90,8 +93,6 @@ const fetchTokenPriceData = async (
       priceUSD: number
     }[] = []
 
-    const mainToken = multiChainQueryMainToken[chainName]
-
     // Get Token prices in BNB
     Object.keys(prices).forEach((priceKey) => {
       const timestamp = priceKey.split('t')[1]
@@ -99,15 +100,11 @@ const fetchTokenPriceData = async (
       if (timestamp) {
         tokenPrices.push({
           timestamp,
-          derivedBNB: prices[priceKey]?.[`derived${mainToken}`]
-            ? parseFloat(prices[priceKey][`derived${mainToken}`])
-            : 0,
+          derivedBNB: prices[priceKey]?.derivedETH ? parseFloat(prices[priceKey].derivedETH) : 0,
           priceUSD: 0,
         })
       }
     })
-
-    console.warn('pricesPart1', tokenPrices)
 
     // Go through BNB USD prices and calculate Token price based on it
     Object.keys(prices).forEach((priceKey) => {
@@ -117,8 +114,7 @@ const fetchTokenPriceData = async (
         const tokenPriceIndex = tokenPrices.findIndex((tokenPrice) => tokenPrice.timestamp === timestamp)
         if (tokenPriceIndex >= 0) {
           const { derivedBNB } = tokenPrices[tokenPriceIndex]
-          tokenPrices[tokenPriceIndex].priceUSD =
-            parseFloat(prices[priceKey]?.[`${mainToken.toLowerCase()}Price`] ?? 0) * derivedBNB
+          tokenPrices[tokenPriceIndex].priceUSD = parseFloat(prices[priceKey]?.ethPrice ?? 0) * derivedBNB
         }
       }
     })
@@ -126,7 +122,7 @@ const fetchTokenPriceData = async (
     // graphql-request does not guarantee same ordering of batched requests subqueries, hence sorting by timestamp from oldest to newest
     const sortedTokenPrices = orderBy(tokenPrices, (tokenPrice) => parseInt(tokenPrice.timestamp, 10))
 
-    const formattedHistory = []
+    const formattedHistory: FormattedHistory[] = []
 
     // for each timestamp, construct the open and close price
     for (let i = 0; i < sortedTokenPrices.length - 1; i++) {

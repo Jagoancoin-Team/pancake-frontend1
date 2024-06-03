@@ -1,16 +1,16 @@
-import { Box, Breadcrumbs, Card, Flex, Heading, Text } from '@pancakeswap/uikit'
-import Link from 'next/link'
 import { useTranslation } from '@pancakeswap/localization'
-import Container from 'components/Layout/Container'
+import { Box, Breadcrumbs, Card, Flex, Heading, Text } from '@pancakeswap/uikit'
 import { useQuery } from '@tanstack/react-query'
+import Container from 'components/Layout/Container'
+import { useSessionStorage } from 'hooks/useSessionStorage'
+import Link from 'next/link'
 import { ProposalState, ProposalType } from 'state/types'
 import { getProposals } from 'state/voting/helpers'
-import { useSessionStorage } from 'hooks/useSessionStorage'
 import { filterProposalsByState, filterProposalsByType } from '../../helpers'
+import Filters from './Filters'
+import ProposalRow from './ProposalRow'
 import ProposalsLoading from './ProposalsLoading'
 import TabMenu from './TabMenu'
-import ProposalRow from './ProposalRow'
-import Filters from './Filters'
 
 interface State {
   proposalType: ProposalType
@@ -26,25 +26,27 @@ const Proposals = () => {
 
   const { proposalType, filterState } = state
 
-  const { data, status } = useQuery(['voting', 'proposals', filterState], async () =>
-    getProposals(1000, 0, filterState),
-  )
+  const { data, status } = useQuery({
+    queryKey: ['voting', 'proposals', filterState],
+
+    queryFn: async () => getProposals(1000, 0, filterState),
+  })
 
   const handleProposalTypeChange = (newProposalType: ProposalType) => {
-    setState((prevState) => ({
+    setState((prevState: any) => ({
       ...prevState,
       proposalType: newProposalType,
     }))
   }
 
   const handleFilterChange = (newFilterState: ProposalState) => {
-    setState((prevState) => ({
+    setState((prevState: any) => ({
       ...prevState,
       filterState: newFilterState,
     }))
   }
 
-  const filteredProposals = filterProposalsByState(filterProposalsByType(data, proposalType), filterState)
+  const filteredProposals = filterProposalsByState(filterProposalsByType(data || [], proposalType), filterState)
 
   return (
     <Container py="40px">

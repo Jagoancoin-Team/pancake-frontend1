@@ -14,14 +14,14 @@ test('exports', () => {
       "BASES_TO_CHECK_TRADES_AGAINST",
       "ADDITIONAL_BASES",
       "CUSTOM_BASES",
+      "BASE_SWAP_COST_STABLE_SWAP",
+      "COST_PER_EXTRA_HOP_STABLE_SWAP",
       "BASE_SWAP_COST_V2",
       "COST_PER_EXTRA_HOP_V2",
       "COST_PER_UNINIT_TICK",
       "BASE_SWAP_COST_V3",
       "COST_PER_INIT_TICK",
       "COST_PER_HOP_V3",
-      "BASE_SWAP_COST_STABLE_SWAP",
-      "COST_PER_EXTRA_HOP_STABLE_SWAP",
       "usdGasTokensByChain",
       "BATCH_MULTICALL_CONFIGS",
       "V2_FEE_PATH_PLACEHOLDER",
@@ -29,31 +29,21 @@ test('exports', () => {
       "ADDRESS_THIS",
       "MIXED_ROUTE_QUOTER_ADDRESSES",
       "V3_QUOTER_ADDRESSES",
-      "getStableSwapPools",
-      "isStableSwapSupported",
-      "StableSwap",
+      "V3_TICK_LENS_ADDRESSES",
+      "feeOnTransferDetectorAddresses",
+      "fetchTokenFeeOnTransfer",
+      "fetchTokenFeeOnTransferBatch",
       "SmartRouter",
       "SwapRouter",
+      "getPoolAddress",
       "Transformer",
       "PoolType",
       "RouteType",
+      "V4Router",
     ]
   `)
 })
 
-test('StableSwap exports', () => {
-  expect(Object.keys(exportedNameSpaces.StableSwap)).toMatchInlineSnapshot(`
-    [
-      "getSwapInput",
-      "getSwapInputWithtouFee",
-      "getSwapOutput",
-      "getSwapOutputWithoutFee",
-      "getLPOutputWithoutFee",
-      "getLPOutput",
-      "getD",
-    ]
-  `)
-})
 test('SmartRouter exports', () => {
   expect(Object.keys(exportedNameSpaces.SmartRouter)).toMatchInlineSnapshot(`
     [
@@ -86,6 +76,7 @@ test('SmartRouter exports', () => {
       "createPoolProvider",
       "createQuoteProvider",
       "createOffChainQuoteProvider",
+      "createPoolQuoteGetter",
       "PancakeMulticallProvider",
       "createCommonTokenPriceProvider",
       "getTokenUsdPricesBySubgraph",
@@ -98,14 +89,19 @@ test('SmartRouter exports', () => {
       "APISchema",
       "Transformer",
       "getExecutionPrice",
-      "getMidPrice",
       "getPoolAddress",
-      "involvesCurrency",
-      "isStablePool",
       "isV2Pool",
       "isV3Pool",
+      "isStablePool",
+      "getMidPrice",
+      "involvesCurrency",
+      "encodeMixedRouteToPath",
+      "buildBaseRoute",
+      "getOutputOfPools",
+      "partitionMixedRouteByProtocol",
       "log",
       "logger",
+      "getPriceImpact",
       "maximumAmountIn",
       "metric",
       "minimumAmountOut",

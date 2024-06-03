@@ -1,7 +1,7 @@
 import { Box, Flex, FlexGap, Text, Toggle, useMatchBreakpoints } from '@pancakeswap/uikit'
 import { NotifyClientTypes } from '@walletconnect/notify-client'
 import Image from 'next/image'
-import { Dispatch, SetStateAction, useCallback } from 'react'
+import React, { Dispatch, ReactNode, SetStateAction, useCallback } from 'react'
 import { NotificationContainerStyled } from 'views/Notifications/styles'
 import { Scope, SubsctiptionType } from 'views/Notifications/types'
 
@@ -9,7 +9,7 @@ export const ScopeIcon: React.FC<
   { scope: SubsctiptionType } & (React.SVGProps<SVGSVGElement> &
     React.DetailedHTMLProps<React.ImgHTMLAttributes<HTMLImageElement>, HTMLImageElement>)
 > = ({ scope }: any) => {
-  const providerToLogo: { [key: string]: JSX.Element } = {
+  const providerToLogo: { [key: string]: ReactNode } = {
     [SubsctiptionType.Alerts]: (
       <Image src="/images/notifications/alerts-scope.svg" alt="alert-scope" width={40} height={40} />
     ),
@@ -26,7 +26,7 @@ export const ScopeIcon: React.FC<
       <Image src="/images/notifications/predictions-scope.svg" alt="prediction-scope" width={40} height={40} />
     ),
     [SubsctiptionType.PriceUpdates]: (
-      <Image src="/images/notifications/price-updates-scope.svg" alt="prices-scope" width={40} height={40} />
+      <Image src="/images/notifications/predictions-scope.svg" alt="prices-scope" width={40} height={40} />
     ),
     [SubsctiptionType.Promotional]: (
       <Image src="/images/notifications/promotional-scope.svg" alt="promo-scope" width={40} height={40} />
@@ -89,7 +89,7 @@ const Settingsitem = ({ scope, id, setScopes, index }: ISettingsprops) => {
 
 const SettingsContainer = ({ scopes, setScopes }: ISettingsContainerProps) => {
   const { isMobile } = useMatchBreakpoints()
-  const mobileHeight = window?.innerHeight
+  const mobileHeight = window?.document.documentElement.clientHeight * 0.9
   return (
     <NotificationContainerStyled $maxHeight={isMobile ? `${mobileHeight - 150}px` : '550px'}>
       {Object.entries(scopes)

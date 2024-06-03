@@ -237,18 +237,23 @@ const IfoCard: React.FC<React.PropsWithChildren<IfoFoldableCardProps>> = ({ ifo,
     )
   }, [account, ifo, publicIfoData, walletIfoData])
 
-  useQuery(['fetchPublicIfoData', currentBlock, ifo.id], async () => fetchPublicIfoData(currentBlock), {
+  useQuery({
+    queryKey: ['fetchPublicIfoData', currentBlock, ifo.id],
+    queryFn: async () => fetchPublicIfoData(currentBlock),
     enabled: Boolean(currentBlock && (isRecentlyActive || !isPublicIfoDataInitialized)),
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
   })
 
-  useQuery(['fetchWalletIfoData', account, ifo.id], async () => fetchWalletIfoData(), {
+  useQuery({
+    queryKey: ['fetchWalletIfoData', account, ifo.id],
+    queryFn: async () => fetchWalletIfoData(),
     enabled: Boolean(isWindowVisible && (isRecentlyActive || !isWalletDataInitialized || hasVesting) && account),
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
     refetchOnMount: false,
+
     ...((isRecentlyActive || hasVesting) && {
       refetchInterval: FAST_INTERVAL,
     }),
@@ -289,12 +294,16 @@ const IfoCard: React.FC<React.PropsWithChildren<IfoFoldableCardProps>> = ({ ifo,
     }
   }, [account, raisingTokenContract, contract, setEnableStatus])
 
+  const hasPoolBasic = Boolean(publicIfoData.poolBasic?.distributionRatio)
+  const hasPoolUnlimited = Boolean(publicIfoData.poolUnlimited?.distributionRatio)
+  const isSingleCard = publicIfoData.isInitialized && (!hasPoolBasic || !hasPoolUnlimited)
+
   return (
     <>
       <StyledCardBody>
         <CardsWrapper
           $shouldReverse={ifo.version >= 3.1 && publicIfoData.poolBasic?.saleType !== 2}
-          $singleCard={!publicIfoData.poolBasic || !walletIfoData.poolBasic}
+          $singleCard={isSingleCard}
         >
           {publicIfoData.poolBasic && walletIfoData.poolBasic && (
             <IfoPoolCard

@@ -1,105 +1,203 @@
-import { useMemo } from 'react'
-import { styled } from 'styled-components'
-import { Text, Flex, Box, CloseIcon, IconButton, useMatchBreakpoints } from '@pancakeswap/uikit'
-import { useTranslation } from '@pancakeswap/localization'
+import { CloseIcon, Flex, IconButton, Text, useMatchBreakpoints } from '@pancakeswap/uikit'
 import { usePhishingBanner } from '@pancakeswap/utils/user'
+import { CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
+import { styled } from 'styled-components'
+import 'swiper/css'
+import 'swiper/css/effect-fade'
 
-const Container = styled(Flex)`
+import { ASSET_CDN } from 'config/constants/endpoints'
+import { Countdown } from './Countdown'
+import { FeeRefund } from './FeeRefund'
+import { Step1 } from './Step1'
+import { Step2 } from './Step2'
+
+const Container = styled(Flex).withConfig({ shouldForwardProp: (prop) => !['$background'].includes(prop) })<{
+  $background?: string
+}>`
   overflow: hidden;
   height: 100%;
   padding: 12px;
   align-items: center;
-  background: linear-gradient(0deg, rgba(39, 38, 44, 0.4), rgba(39, 38, 44, 0.4)),
-    linear-gradient(180deg, #8051d6 0%, #492286 100%);
+  background: #280d5f;
+
   ${({ theme }) => theme.mediaQueries.md} {
     padding: 0px;
-    background: linear-gradient(180deg, #8051d6 0%, #492286 100%);
+    background: #7a6eaa;
+    ${({ $background }) => $background && `background: ${$background};`}
   }
 `
 
 const InnerContainer = styled(Flex)`
   width: 100%;
   height: 100%;
-  justify-content: center;
   align-items: center;
 `
 
-const SpeechBubble = styled.div`
-  background: rgba(39, 38, 44, 0.4);
+const SpeechBubble = styled(Flex)`
+  position: relative;
   border-radius: 16px;
-  padding: 8px;
-  width: 60%;
+  width: 100%;
   height: 80%;
-  display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
 
   & ${Text} {
     flex-shrink: 0;
     margin-right: 4px;
   }
+
+  ${({ theme }) => theme.mediaQueries.md} {
+    width: 800px;
+    padding: 8px;
+    margin-left: 8px;
+    background: #280d5f;
+
+    &:before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: -7px;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-top: 8px solid transparent;
+      border-bottom: 8px solid transparent;
+      border-right: 8px solid #280d5f;
+    }
+  }
+
+  ${({ theme }) => theme.mediaQueries.lg} {
+    width: 900px;
+  }
+`
+const AnimationContainer = styled(Flex)<{ $showAnimation?: boolean }>`
+  width: 100%;
+  justify-content: center;
+  animation: ${({ $showAnimation }) => ($showAnimation ? `fadeIn 1s linear;` : 'none')};
+
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
 `
 
-const domain = 'https://pancakeswap.finance'
+const DISPLAY_TIMER = 13000
+
+type BannerConfig = {
+  component: React.FC
+  stripeImage: string
+  stripeImageWidth: string | number
+  stripeImageAlt: string
+  background?: string
+  customStyle?: CSSProperties
+}
+
+const CONFIG: BannerConfig[] = [
+  {
+    component: Step1,
+    stripeImage: `${ASSET_CDN}/web/phishing-warning/phishing-warning-bunny-1.png`,
+    stripeImageWidth: '92px',
+    stripeImageAlt: 'Phishing Warning',
+  },
+  {
+    component: Step2,
+    stripeImage: `${ASSET_CDN}/web/phishing-warning/phishing-warning-bunny-2.png`,
+    stripeImageWidth: '92px',
+    stripeImageAlt: 'Phishing Warning',
+  },
+  {
+    component: FeeRefund,
+    stripeImage: FeeRefund.stripeImage,
+    stripeImageWidth: FeeRefund.stripeImageWidth,
+    stripeImageAlt: FeeRefund.stripeImageAlt,
+    background: FeeRefund.background,
+    customStyle: { position: 'relative', transform: 'scale(1.25) translateX(-10px)' },
+  },
+]
 
 const PhishingWarningBanner: React.FC<React.PropsWithChildren> = () => {
-  const { t } = useTranslation()
   const [, hideBanner] = usePhishingBanner()
-  const { isMobile, isMd } = useMatchBreakpoints()
-  const warningTextAsParts = useMemo(() => {
-    const warningText = t("please make sure you're visiting %domain% - check the URL carefully.", { domain })
-    return warningText.split(/(https:\/\/pancakeswap.finance)/g)
-  }, [t])
-  const warningTextComponent = (
-    <>
-      <Text as="span" color="warning" small bold textTransform="uppercase">
-        {t('Phishing warning: ')}
-      </Text>
-      {warningTextAsParts.map((text, i) => (
-        <Text
-          // eslint-disable-next-line react/no-array-index-key
-          key={i}
-          small
-          as="span"
-          bold={text === domain}
-          color={text === domain ? '#FFFFFF' : '#BDC2C4'}
-        >
-          {text}
-        </Text>
-      ))}
-    </>
-  )
+  const { isDesktop, isLg } = useMatchBreakpoints()
+  const [percentage, setPerCentage] = useState(0)
+  const showInBigDevice = isDesktop || isLg
+  const [step, setStep] = useState(0)
+  const timer = useRef<number | null>(null)
+  const [showAnimation, setShowAnimation] = useState(true)
+  const [remainingTimer, setRemainingTimer] = useState(DISPLAY_TIMER)
+  const banner = useMemo(() => CONFIG[step], [step])
+
+  const nextItem = useMemo(() => (step < CONFIG.length - 1 ? step + 1 : 0), [step])
+  useEffect(() => {
+    const startCountdown = () => {
+      // Clear previous interval
+      if (timer.current) {
+        if (showAnimation) {
+          setTimeout(() => setShowAnimation(false), 1000)
+        }
+
+        clearInterval(timer.current)
+      }
+
+      timer.current = setInterval(() => {
+        const timeInSecond = remainingTimer - 70
+        const newRemainingTimer = timeInSecond > 0 ? timeInSecond : DISPLAY_TIMER
+        setRemainingTimer(newRemainingTimer)
+
+        const newPercentage = 1 - timeInSecond / DISPLAY_TIMER
+        setPerCentage(newPercentage)
+
+        if (newPercentage >= 1) {
+          setStep(nextItem)
+          setShowAnimation(true)
+        }
+      }, 50)
+    }
+
+    startCountdown()
+
+    return () => {
+      if (timer.current) {
+        clearInterval(timer.current)
+      }
+    }
+  }, [remainingTimer, showAnimation, step, nextItem])
+
+  const handleClickNext = () => {
+    setTimeout(() => {
+      setStep(nextItem)
+      setPerCentage(0)
+      setRemainingTimer(DISPLAY_TIMER)
+      setShowAnimation(true)
+    }, 600)
+  }
+
   return (
-    <Container className="warning-banner">
-      {isMobile || isMd ? (
-        <>
-          <Box>{warningTextComponent}</Box>
-          <IconButton onClick={hideBanner} variant="text">
-            <CloseIcon color="#FFFFFF" />
-          </IconButton>
-        </>
-      ) : (
-        <>
-          <InnerContainer>
+    <Container className="warning-banner" $background={banner.background}>
+      <AnimationContainer $showAnimation={showAnimation}>
+        <Flex justifyContent="center" alignItems="center">
+          {showInBigDevice && (
             <img
-              src="/images/decorations/phishing-warning-bunny.webp"
-              alt="phishing-warning"
-              width="92px"
-              onError={(e) => {
-                const fallbackSrc = '/images/decorations/phishing-warning-bunny.png'
-                if (!e.currentTarget.src.endsWith(fallbackSrc)) {
-                  // eslint-disable-next-line no-param-reassign
-                  e.currentTarget.src = fallbackSrc
-                }
-              }}
+              style={banner.customStyle}
+              width={banner.stripeImageWidth}
+              alt={banner.stripeImageAlt}
+              src={banner.stripeImage}
             />
-            <SpeechBubble>{warningTextComponent}</SpeechBubble>
-          </InnerContainer>
-          <IconButton onClick={hideBanner} variant="text">
-            <CloseIcon color="#FFFFFF" />
-          </IconButton>
-        </>
-      )}
+          )}
+          <SpeechBubble>
+            <InnerContainer>
+              <banner.component />
+            </InnerContainer>
+            <Countdown percentage={percentage} onClick={handleClickNext} />
+          </SpeechBubble>
+        </Flex>
+      </AnimationContainer>
+      <IconButton onClick={hideBanner} variant="text">
+        <CloseIcon color="#FFFFFF" />
+      </IconButton>
     </Container>
   )
 }

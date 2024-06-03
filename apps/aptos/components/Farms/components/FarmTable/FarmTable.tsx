@@ -51,15 +51,15 @@ const TableBody = styled.tbody`
     }
 
     :last-child {
-      td[colspan="7"] {
+      td[colspan='7'] {
         > div {
           border-bottom-left-radius: 16px;
           border-bottom-right-radius: 16px;
         }
       }
     }
+  }
 `
-
 const TableContainer = styled.div`
   position: relative;
 `
@@ -136,6 +136,7 @@ const FarmTable: React.FC<React.PropsWithChildren<ITableProps>> = ({
         quoteToken: farm.quoteToken,
         isReady: farm.multiplier !== undefined,
         isStaking: farm.userData?.stakedBalance.gt(0),
+        lpAddress: farm.lpAddress,
       },
       earned: farm,
       liquidity: {
@@ -167,7 +168,9 @@ const FarmTable: React.FC<React.PropsWithChildren<ITableProps>> = ({
     const newRow: RowProps = {}
     columns.forEach((column) => {
       if (!(column.name in row)) {
-        throw new Error(`Invalid row data, ${column.name} not found`)
+        // FIXME: new column property added. Suppress error for now
+        // throw new Error(`Invalid row data, ${column.name} not found`)
+        return
       }
       newRow[column.name] = row[column.name]
     })

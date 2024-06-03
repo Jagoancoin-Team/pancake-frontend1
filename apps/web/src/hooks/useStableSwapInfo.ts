@@ -2,55 +2,58 @@ import { Percent } from '@pancakeswap/sdk'
 
 import { lpTokenABI } from 'config/abi/lpTokenAbi'
 import { stableSwapABI } from 'config/abi/stableSwapAbi'
-import { Address, useContractReads } from 'wagmi'
+import { Address } from 'viem'
+import { useReadContracts } from '@pancakeswap/wagmi'
 import { useActiveChainId } from './useActiveChainId'
 
 export function useStableSwapInfo(stableSwapAddress: Address | undefined, lpAddress: Address | undefined) {
   const { chainId } = useActiveChainId()
 
-  const { data: results, isLoading } = useContractReads({
-    watch: true,
-    enabled: Boolean(stableSwapAddress && lpAddress),
+  const { data: results, isLoading } = useReadContracts({
+    query: {
+      enabled: Boolean(stableSwapAddress && lpAddress),
+    },
     contracts: [
       {
         chainId,
         abi: stableSwapABI,
-        address: stableSwapAddress,
+        address: stableSwapAddress!,
         functionName: 'balances',
         args: [0n],
       },
       {
         chainId,
         abi: stableSwapABI,
-        address: stableSwapAddress,
+        address: stableSwapAddress!,
         functionName: 'balances',
         args: [1n],
       },
       {
         chainId,
         abi: stableSwapABI,
-        address: stableSwapAddress,
+        address: stableSwapAddress!,
         functionName: 'A',
       },
       {
         chainId,
         abi: lpTokenABI,
-        address: lpAddress,
+        address: lpAddress!,
         functionName: 'totalSupply',
       },
       {
         chainId,
         abi: stableSwapABI,
-        address: stableSwapAddress,
+        address: stableSwapAddress!,
         functionName: 'fee',
       },
       {
         chainId,
         abi: stableSwapABI,
-        address: stableSwapAddress,
+        address: stableSwapAddress!,
         functionName: 'FEE_DENOMINATOR',
       },
     ],
+    watch: true,
   })
 
   const feeNumerator = results?.[4]?.result

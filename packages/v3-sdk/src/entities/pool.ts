@@ -195,6 +195,34 @@ export class Pool {
     const zeroForOne = outputAmount.currency.equals(this.token1)
 
     const {
+      amountCalculated: inputAmount,
+      sqrtRatioX96,
+      liquidity,
+      tickCurrent,
+    } = await this.swap(zeroForOne, outputAmount.quotient * NEGATIVE_ONE, sqrtPriceLimitX96)
+
+    const inputToken = zeroForOne ? this.token0 : this.token1
+    return [
+      CurrencyAmount.fromRawAmount(inputToken, inputAmount),
+      new Pool(this.token0, this.token1, this.fee, sqrtRatioX96, liquidity, tickCurrent, this.tickDataProvider),
+    ]
+  }
+
+  /**
+   * Given a desired output amount of a token, return the computed input amount and a pool with state updated after the trade
+   * @param outputAmount the output amount for which to quote the input amount
+   * @param sqrtPriceLimitX96 The Q64.96 sqrt price limit. If zero for one, the price cannot be less than this value after the swap. If one for zero, the price cannot be greater than this value after the swap
+   * @returns The input amount and the pool with updated state
+   */
+  public async getInputAmountByExactOut(
+    outputAmount: CurrencyAmount<Token>,
+    sqrtPriceLimitX96?: bigint
+  ): Promise<[CurrencyAmount<Token>, Pool]> {
+    invariant(outputAmount.currency.isToken && this.involvesToken(outputAmount.currency), 'TOKEN')
+
+    const zeroForOne = outputAmount.currency.equals(this.token1)
+
+    const {
       amountSpecifiedRemaining,
       amountCalculated: inputAmount,
       sqrtRatioX96,
@@ -202,7 +230,7 @@ export class Pool {
       tickCurrent,
     } = await this.swap(zeroForOne, outputAmount.quotient * NEGATIVE_ONE, sqrtPriceLimitX96)
 
-    invariant(amountSpecifiedRemaining === ZERO, 'INSUFICIENT_LIQUIDITY')
+    invariant(amountSpecifiedRemaining === 0n, 'INSUFFICIENT_LIQUIDITY')
 
     const inputToken = zeroForOne ? this.token0 : this.token1
     return [

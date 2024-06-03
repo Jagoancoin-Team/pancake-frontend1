@@ -9,6 +9,7 @@ export interface UsePoolAvgInfoParams {
   numberOfDays?: number
   address?: string
   chainId?: ChainId
+  enabled?: boolean
 }
 
 export const averageArray = (dataToCalculate: number[]): number => {
@@ -33,10 +34,11 @@ const defaultInfo: Info = {
   feeUSD: 0,
 }
 
-export function usePoolAvgInfo({ address = '', numberOfDays = 7, chainId }: UsePoolAvgInfoParams) {
-  const { data } = useQuery(
-    [address, chainId],
-    async () => {
+export function usePoolAvgInfo({ address = '', numberOfDays = 7, chainId, enabled = true }: UsePoolAvgInfoParams) {
+  const { data } = useQuery({
+    queryKey: ['poolAvgInfo', address, chainId],
+
+    queryFn: async () => {
       if (!chainId) return undefined
       const client = v3Clients[chainId]
       if (!client) {
@@ -56,7 +58,7 @@ export function usePoolAvgInfo({ address = '', numberOfDays = 7, chainId }: UseP
       `
       const { poolDayDatas } = await client.request(query, {
         days: numberOfDays,
-        address: address.toLocaleLowerCase(),
+        address: address.toLowerCase(),
       })
       const volumes = poolDayDatas.map((d: { volumeUSD: string }) => Number(d.volumeUSD))
       const feeUSDs = poolDayDatas.map(
@@ -68,11 +70,10 @@ export function usePoolAvgInfo({ address = '', numberOfDays = 7, chainId }: UseP
         feeUSD: averageArray(feeUSDs),
       }
     },
-    {
-      enabled: Boolean(address && chainId),
-      refetchOnWindowFocus: false,
-    },
-  )
+
+    enabled: Boolean(address && chainId && enabled),
+    refetchOnWindowFocus: false,
+  })
 
   return data || defaultInfo
 }

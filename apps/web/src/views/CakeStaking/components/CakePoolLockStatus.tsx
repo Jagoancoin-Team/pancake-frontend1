@@ -21,10 +21,13 @@ import dayjs from 'dayjs'
 import { useCakePrice } from 'hooks/useCakePrice'
 import { useMemo } from 'react'
 import { formatTime } from 'utils/formatTime'
+import relativeTime from 'dayjs/plugin/relativeTime'
 import { useCakePoolLockInfo } from '../hooks/useCakePoolLockInfo'
 import { useWriteMigrateCallback } from '../hooks/useContractWrite/useWriteMigrateCallback'
 import { useCurrentBlockTimestamp } from '../hooks/useCurrentBlockTimestamp'
 import { StyledLockedCard } from './styled'
+
+dayjs.extend(relativeTime)
 
 export const CakePoolLockInfo = () => {
   const { t } = useTranslation()
@@ -46,8 +49,8 @@ export const CakePoolLockInfo = () => {
   return (
     <FlexGap flexDirection="column" gap="24px" margin={24}>
       <RowBetween>
-        <Text color="textSubtle" bold fontSize={12} textTransform="uppercase">
-          {t('my cake staking')}
+        <Text color="secondary" bold fontSize={12} textTransform="uppercase">
+          {t('migrated position')}
         </Text>
         <Tag variant="failure" scale="sm" startIcon={<WarningIcon color="white" />} px="8px">
           {t('Migration Needed')}
@@ -97,7 +100,7 @@ export const CakePoolLockStatus = () => {
         <CardHeader>
           <RowBetween>
             <AutoColumn>
-              <Heading color="text">{t('My VeCAKE')}</Heading>
+              <Heading color="text">{t('My veCAKE')}</Heading>
               <Balance fontSize="20px" bold color="failure" value={0} decimals={2} />
             </AutoColumn>
             <img srcSet="/images/cake-staking/token-vecake.png 2x" alt="token-vecake" />

@@ -3,7 +3,8 @@ import { bscTokens } from '@pancakeswap/tokens'
 import { useQuery } from '@tanstack/react-query'
 import { getActivePools } from 'utils/calls'
 import { publicClient } from 'utils/wagmi'
-import { Address, useAccount } from 'wagmi'
+import { Address } from 'viem'
+import { useAccount } from 'wagmi'
 import { VECAKE_VOTING_POWER_BLOCK, getVeVotingPower, getVotingPower } from '../helpers'
 
 interface State {
@@ -21,9 +22,10 @@ interface State {
 
 const useGetVotingPower = (block?: number): State & { isLoading: boolean; isError: boolean } => {
   const { address: account } = useAccount()
-  const { data, status, error } = useQuery(
-    [account, block, 'votingPower'],
-    async () => {
+  const { data, status, error } = useQuery({
+    queryKey: [account, block, 'votingPower'],
+
+    queryFn: async () => {
       if (!account) {
         throw new Error('No account')
       }
@@ -59,13 +61,12 @@ const useGetVotingPower = (block?: number): State & { isLoading: boolean; isErro
         lockedEndTime,
       }
     },
-    {
-      enabled: Boolean(account),
-      refetchOnReconnect: false,
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
-    },
-  )
+
+    enabled: Boolean(account),
+    refetchOnReconnect: false,
+    refetchOnWindowFocus: false,
+    refetchOnMount: false,
+  })
   if (error) console.error(error)
 
   return { total: 0, ...data, isLoading: status !== 'success', isError: status === 'error' }

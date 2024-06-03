@@ -5,14 +5,15 @@ import {
   Breadcrumbs,
   Button,
   Card,
+  CopyButton,
   Flex,
   Heading,
   Image,
+  ScanLink,
   Spinner,
   Text,
   Link as UIKitLink,
   useMatchBreakpoints,
-  ScanLink,
 } from '@pancakeswap/uikit'
 import { NextLinkFromReactRouter } from '@pancakeswap/widgets-internal'
 
@@ -23,14 +24,10 @@ import truncateHash from '@pancakeswap/utils/truncateHash'
 import Page from 'components/Layout/Page'
 import { CHAIN_QUERY_NAME } from 'config/chains'
 import { ONE_HOUR_SECONDS } from 'config/constants/info'
+import dayjs from 'dayjs'
+import duration from 'dayjs/plugin/duration'
 import { useMemo } from 'react'
-import {
-  multiChainId,
-  multiChainScan,
-  subgraphTokenName,
-  subgraphTokenSymbol,
-  ChainLinkSupportChains,
-} from 'state/info/constant'
+import { ChainLinkSupportChains, multiChainId, multiChainScan } from 'state/info/constant'
 import {
   useChainIdByQuery,
   useChainNameByQuery,
@@ -44,8 +41,9 @@ import {
   useTokenTransactionsQuery,
 } from 'state/info/hooks'
 import { styled } from 'styled-components'
-import { getBlockExploreLink, safeGetAddress } from 'utils'
+import { getBlockExploreLink } from 'utils'
 import { formatAmount } from 'utils/formatInfoNumbers'
+import { getTokenNameAlias, getTokenSymbolAlias } from 'utils/getTokenAlias'
 import { CurrencyLogo } from 'views/Info/components/CurrencyLogo'
 import ChartCard from 'views/Info/components/InfoCharts/ChartCard'
 import PoolTable from 'views/Info/components/InfoTables/PoolsTable'
@@ -53,8 +51,6 @@ import TransactionTable from 'views/Info/components/InfoTables/TransactionsTable
 import Percent from 'views/Info/components/Percent'
 import SaveIcon from 'views/Info/components/SaveIcon'
 import useCMCLink from 'views/Info/hooks/useCMCLink'
-import dayjs from 'dayjs'
-import duration from 'dayjs/plugin/duration'
 
 dayjs.extend(duration)
 
@@ -119,7 +115,8 @@ const TokenPage: React.FC<React.PropsWithChildren<{ routeAddress: string }>> = (
   const chainPath = useMultiChainPath()
   const chainName = useChainNameByQuery()
   const infoTypeParam = useStableSwapPath()
-  const checksummedAddress = safeGetAddress(tokenData?.address)
+  const tokenSymbol = tokenData ? getTokenSymbolAlias(tokenData.address, chainId, tokenData.symbol) : ''
+  const tokenName = tokenData ? getTokenNameAlias(tokenData.address, chainId, tokenData.name) : ''
 
   return (
     <Page>
@@ -148,7 +145,7 @@ const TokenPage: React.FC<React.PropsWithChildren<{ routeAddress: string }>> = (
                   <Text color="primary">{t('Tokens')}</Text>
                 </NextLinkFromReactRouter>
                 <Flex>
-                  <Text mr="8px">{tokenData.symbol}</Text>
+                  <Text mr="8px">{tokenSymbol}</Text>
                   <Text>{`(${truncateHash(address)})`}</Text>
                 </Flex>
               </Breadcrumbs>
@@ -162,11 +159,17 @@ const TokenPage: React.FC<React.PropsWithChildren<{ routeAddress: string }>> = (
                   {t('View on %site%', { site: multiChainScan[chainName] })}
                 </ScanLink>
                 {cmcLink && (
-                  <StyledCMCLink href={cmcLink} rel="noopener noreferrer nofollow" target="_blank">
+                  <StyledCMCLink
+                    href={cmcLink}
+                    rel="noopener noreferrer nofollow"
+                    target="_blank"
+                    title="CoinMarketCap"
+                  >
                     <Image src="/images/CMC-logo.svg" height={22} width={22} alt={t('View token on CoinMarketCap')} />
                   </StyledCMCLink>
                 )}
                 <SaveIcon fill={savedTokens.includes(address)} onClick={() => addToken(address)} />
+                <CopyButton ml="4px" text={address} tooltipMessage={t('Token address copied')} />
               </Flex>
             </Flex>
             <Flex justifyContent="space-between" flexDirection={['column', 'column', 'column', 'row']}>
@@ -180,10 +183,10 @@ const TokenPage: React.FC<React.PropsWithChildren<{ routeAddress: string }>> = (
                     fontSize={isXs || isSm ? '24px' : '40px'}
                     id="info-token-name-title"
                   >
-                    {(checksummedAddress && subgraphTokenName[checksummedAddress]) || tokenData.name}
+                    {tokenName}
                   </Text>
                   <Text ml="12px" lineHeight="1" color="textSubtle" fontSize={isXs || isSm ? '14px' : '20px'}>
-                    ({(checksummedAddress && subgraphTokenSymbol[checksummedAddress]) || tokenData.symbol})
+                    ({tokenSymbol})
                   </Text>
                 </Flex>
                 <Flex mt="8px" ml="46px" alignItems="center">

@@ -1,13 +1,14 @@
-import React, { useMemo } from 'react'
-import BigNumber from 'bignumber.js'
-import { styled } from 'styled-components'
-import { useTranslation } from '@pancakeswap/localization'
-import { getBalanceNumber } from '@pancakeswap/utils/formatBalance'
-import { Flex, Spinner, RowType } from '@pancakeswap/uikit'
 import { FarmWithStakedValue } from '@pancakeswap/farms'
-import TableHeader from './MigrationTable/TableHeader'
+import { useTranslation } from '@pancakeswap/localization'
+import { Flex, RowType, Spinner } from '@pancakeswap/uikit'
+import { BIG_ZERO } from '@pancakeswap/utils/bigNumber'
+import { getBalanceNumber } from '@pancakeswap/utils/formatBalance'
+import BigNumber from 'bignumber.js'
+import React, { useMemo } from 'react'
+import { styled } from 'styled-components'
 import EmptyText from './MigrationTable/EmptyText'
 import TableStyle from './MigrationTable/StyledTable'
+import TableHeader from './MigrationTable/TableHeader'
 import { ColumnsDefTypes, RowProps, V3Step1DesktopColumnSchema } from './types'
 import { V3OldFarmRow } from './v3/OldFarmRow'
 
@@ -22,11 +23,12 @@ const Container = styled.div`
 export interface ITableProps {
   title: string
   noStakedFarmText: string
-  account: string
+  account?: string
   columnSchema: ColumnsDefTypes[]
   farms: FarmWithStakedValue[]
   userDataReady: boolean
   sortColumn?: string
+  step?: number
 }
 
 const MigrationFarmTable: React.FC<React.PropsWithChildren<ITableProps>> = ({
@@ -36,6 +38,7 @@ const MigrationFarmTable: React.FC<React.PropsWithChildren<ITableProps>> = ({
   columnSchema,
   farms,
   userDataReady,
+  step,
 }) => {
   const { t } = useTranslation()
 
@@ -53,21 +56,20 @@ const MigrationFarmTable: React.FC<React.PropsWithChildren<ITableProps>> = ({
       },
       staked: {
         label: lpLabel,
-        pid: farm.pid,
-        stakedBalance: farm.boosted ? farm.userData?.proxy?.stakedBalance : farm.userData.stakedBalance,
+        stakedBalance: (farm.boosted ? farm.userData?.proxy?.stakedBalance : farm.userData?.stakedBalance) ?? BIG_ZERO,
       },
       unstake: { pid: farm.pid, vaultPid: farm.vaultPid, farm },
       earned: {
         earnings: farm.boosted
-          ? getBalanceNumber(farm.userData.proxy.earnings)
-          : getBalanceNumber(new BigNumber(farm.userData.earnings)),
+          ? getBalanceNumber(farm.userData?.proxy?.earnings)
+          : getBalanceNumber(farm.userData ? new BigNumber(farm.userData.earnings) : BIG_ZERO),
         pid: farm.pid,
       },
       liquidity: {
-        liquidity: farm.liquidity,
+        liquidity: farm.liquidity ?? BIG_ZERO,
       },
       multiplier: {
-        multiplier: farm.multiplier,
+        multiplier: farm.multiplier ?? '',
       },
     }
 
@@ -104,7 +106,6 @@ const MigrationFarmTable: React.FC<React.PropsWithChildren<ITableProps>> = ({
     })
     return newRow
   })
-
   return (
     <Container>
       <TableHeader title={title} />
@@ -120,7 +121,7 @@ const MigrationFarmTable: React.FC<React.PropsWithChildren<ITableProps>> = ({
           userDataReady &&
           sortedRows.map((row) => {
             if (columnSchema === V3Step1DesktopColumnSchema) {
-              return <V3OldFarmRow {...row} key={`table-row-${row.farm.pid}`} />
+              return <V3OldFarmRow step={step} {...row} key={`table-row-${row.farm.pid}`} />
             }
             return null
           })}

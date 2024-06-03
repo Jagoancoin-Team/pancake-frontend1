@@ -23,6 +23,7 @@ import { useTransactionAdder } from 'state/transactions/hooks'
 import useCatchTxError from 'hooks/useCatchTxError'
 import { isUserRejected } from 'utils/sentry'
 
+import { usePublicNodeWaitForTransaction } from 'hooks/usePublicNodeWaitForTransaction'
 import { useChainName } from './useChainNames'
 
 export enum BRIDGE_STATE {
@@ -256,13 +257,13 @@ export function useLatestBridgeTx(ifoId: string, chainId?: ChainId) {
     }
   }, [storageKey])
 
-  const { data: receipt } = useQuery(
-    [tx, 'bridge-icake-tx-receipt'],
-    () => tx && getViemClients({ chainId })?.waitForTransactionReceipt({ hash: tx }),
-    {
-      enabled: Boolean(tx && chainId),
-    },
-  )
+  const { waitForTransaction } = usePublicNodeWaitForTransaction()
+
+  const { data: receipt } = useQuery({
+    queryKey: [tx, 'bridge-icake-tx-receipt'],
+    queryFn: () => tx && waitForTransaction({ hash: tx, chainId }),
+    enabled: Boolean(tx && chainId),
+  })
 
   // Get last tx from storage on load
   useEffect(() => {
@@ -283,9 +284,10 @@ type CrossChainMeesageParams = {
 }
 
 export function useCrossChainMessage({ txHash, srcChainId }: CrossChainMeesageParams) {
-  const { data: message } = useQuery(
-    [txHash, srcChainId, 'ifo-cross-chain-sync-message'],
-    () => {
+  const { data: message } = useQuery({
+    queryKey: [txHash, srcChainId, 'ifo-cross-chain-sync-message'],
+
+    queryFn: () => {
       if (!srcChainId || !txHash) {
         throw new Error('Invalid srcChainId or tx hash')
       }
@@ -295,10 +297,9 @@ export function useCrossChainMessage({ txHash, srcChainId }: CrossChainMeesagePa
         txHash,
       })
     },
-    {
-      enabled: Boolean(txHash && srcChainId),
-      refetchInterval: 5 * 1000,
-    },
-  )
+
+    enabled: Boolean(txHash && srcChainId),
+    refetchInterval: 5 * 1000,
+  })
   return message
 }

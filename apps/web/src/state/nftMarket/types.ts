@@ -1,5 +1,5 @@
 import { BigintIsh } from '@pancakeswap/swap-sdk-core'
-import { Address } from 'wagmi'
+import { Address } from 'viem'
 
 // Collections -> Nfts -> Transactions
 // Users -> Nft tokens IDs
@@ -96,14 +96,14 @@ export interface NftActivityFilter {
 
 export interface TokenIdWithCollectionAddress {
   collectionAddress: Address
-  tokenId: string
+  tokenId?: string
   nftLocation?: NftLocation
 }
 
 export interface NftAttribute {
   traitType: string
-  value: string | number
-  displayType: string
+  value: string | number | undefined
+  displayType: string | null
 }
 
 // Internal type used to refer to a collection

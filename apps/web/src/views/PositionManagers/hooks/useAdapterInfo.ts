@@ -1,12 +1,20 @@
-import { useQuery } from '@tanstack/react-query'
-import { positionManagerAdapterABI, positionManagerWrapperABI } from '@pancakeswap/position-managers'
-import { usePositionManagerWrapperContract, useContract } from 'hooks/useContract'
-import { useActiveChainId } from 'hooks/useActiveChainId'
-import { publicClient } from 'utils/wagmi'
-import { Address } from 'viem'
-import useActiveWeb3React from 'hooks/useActiveWeb3React'
+import {
+  positionManagerAdapterABI,
+  positionManagerVeBCakeWrapperABI,
+  positionManagerWrapperABI,
+} from '@pancakeswap/position-managers'
 import { Percent } from '@pancakeswap/sdk'
-import { erc20ABI } from 'wagmi'
+import { useQuery } from '@tanstack/react-query'
+import BigNumber from 'bignumber.js'
+import { useActiveChainId } from 'hooks/useActiveChainId'
+import {
+  useContract,
+  usePositionManagerBCakeWrapperContract,
+  usePositionManagerWrapperContract,
+} from 'hooks/useContract'
+import { publicClient } from 'utils/wagmi'
+import { Address, erc20Abi } from 'viem'
+import { useAccount } from 'wagmi'
 
 export async function getAdapterTokensAmounts({ address, chainId }): Promise<{
   token0Amounts: bigint
@@ -58,7 +66,7 @@ export async function getAdapterTokensAmounts({ address, chainId }): Promise<{
     })
 
   if (
-    !totalSupplyData?.result ||
+    (!totalSupplyData?.result && totalSupplyData?.result !== 0n) ||
     !tokenPerShareData?.result ||
     !PRECISIONData?.result ||
     (!managerFeeData?.result && managerFeeData?.result !== 0n) ||
@@ -95,117 +103,137 @@ export async function getAdapterTokensAmounts({ address, chainId }): Promise<{
 
 export const useAdapterTokensAmounts = (adapterAddress: Address) => {
   const { chainId } = useActiveChainId()
-  const { data, refetch } = useQuery(
-    ['AdapterTokensAmounts', adapterAddress, chainId],
-    () => getAdapterTokensAmounts({ address: adapterAddress, chainId }),
-    {
-      enabled: !!adapterAddress && !!chainId,
-      refetchInterval: 3000,
-      staleTime: 3000,
-      cacheTime: 3000,
-    },
-  )
+  const { data, refetch } = useQuery({
+    queryKey: ['AdapterTokensAmounts', adapterAddress, chainId],
+    queryFn: () => getAdapterTokensAmounts({ address: adapterAddress, chainId }),
+    enabled: !!adapterAddress && !!chainId,
+    refetchInterval: 3000,
+    staleTime: 3000,
+    gcTime: 3000,
+  })
   return { data, refetch }
 }
 
-export const useUserAmounts = (wrapperAddress: Address) => {
-  const { account } = useActiveWeb3React()
+export const useUserAmounts = (wrapperAddress: Address, isBCakeWrapper: boolean) => {
+  const { address: account } = useAccount()
   const contract = usePositionManagerWrapperContract(wrapperAddress)
-  const { data, refetch } = useQuery(
-    ['useUserAmounts', wrapperAddress, account],
-    () => contract.read.userInfo([account ?? '0x']),
-    {
-      enabled: !!wrapperAddress && !!account,
-      refetchInterval: 3000,
-      staleTime: 3000,
-      cacheTime: 3000,
-    },
-  )
-  return { data, refetch }
+  const bCakeContract = usePositionManagerBCakeWrapperContract(wrapperAddress)
+  const { data, refetch } = useQuery({
+    queryKey: ['useUserAmounts', wrapperAddress, account],
+    queryFn: () => contract.read.userInfo([account ?? '0x']),
+    enabled: !!wrapperAddress && !!account && !isBCakeWrapper,
+    refetchInterval: 3000,
+    staleTime: 3000,
+    gcTime: 3000,
+  })
+  const { data: bCakeData, refetch: bCakeRefetch } = useQuery({
+    queryKey: ['useBCakeUserAmounts', wrapperAddress, account],
+    queryFn: () => bCakeContract.read.userInfo([account ?? '0x']),
+    enabled: !!wrapperAddress && !!account && isBCakeWrapper,
+    refetchInterval: 3000,
+    staleTime: 3000,
+    gcTime: 3000,
+  })
+  return { data, refetch, bCakeData, bCakeRefetch }
 }
 
-export const useWrapperStaticData = (wrapperAddress: Address) => {
+export const useWrapperStaticData = (wrapperAddress: Address, isBCakeWrapper: boolean) => {
   const { chainId } = useActiveChainId()
-  const { data, refetch } = useQuery(
-    ['useWrapperStaticData', wrapperAddress, chainId],
-    () => getWrapperStaticData({ address: wrapperAddress, chainId }),
-    {
-      enabled: !!wrapperAddress && !!chainId,
-      refetchInterval: 30000,
-      staleTime: 30000,
-      cacheTime: 30000,
-    },
-  )
-  return { data, refetch }
+  const { data, refetch } = useQuery({
+    queryKey: ['useWrapperStaticData', wrapperAddress, chainId],
+    queryFn: () => getWrapperStaticData({ address: wrapperAddress, chainId }),
+    enabled: !!wrapperAddress && !!chainId && !isBCakeWrapper,
+    refetchInterval: 30000,
+    staleTime: 30000,
+    gcTime: 30000,
+  })
+  const { data: bCakeData, refetch: bCakeRefetch } = useQuery({
+    queryKey: ['useBCakeWrapperStaticData', wrapperAddress, chainId],
+    queryFn: () => getBCakeWrapperStaticData({ address: wrapperAddress, chainId }),
+    enabled: !!wrapperAddress && !!chainId && isBCakeWrapper,
+    refetchInterval: 30000,
+    staleTime: 30000,
+    gcTime: 30000,
+  })
+  return { data, refetch, bCakeData, bCakeRefetch }
 }
 
 export const useVaultStaticData = (vaultAddress?: Address) => {
   const { chainId } = useActiveChainId()
-  const vaultContract = useContract(vaultAddress, erc20ABI)
-  const { data, refetch } = useQuery(
-    ['useVaultStaticData', vaultAddress, chainId],
-    () => vaultContract?.read.decimals(),
-    {
-      enabled: !!vaultAddress && !!chainId,
-    },
-  )
+  const vaultContract = useContract(vaultAddress, erc20Abi)
+  const { data, refetch } = useQuery({
+    queryKey: ['useVaultStaticData', vaultAddress, chainId],
+    queryFn: () => vaultContract?.read.decimals(),
+    enabled: !!vaultAddress && !!chainId,
+  })
   return { data, refetch }
 }
 
-export const usePositionInfo = (wrapperAddress: Address, adapterAddress: Address) => {
-  const { data: userAmounts, refetch: refetchUserAmounts } = useUserAmounts(wrapperAddress)
+export const usePositionInfo = (wrapperAddress: Address, adapterAddress: Address, isBCakeWrapper: boolean) => {
+  const {
+    data: userAmounts,
+    refetch: refetchUserAmounts,
+    bCakeData: bCakeUserAmounts,
+    bCakeRefetch: refetchBCakeUserAmounts,
+  } = useUserAmounts(wrapperAddress, isBCakeWrapper)
   const { data: poolAmounts, refetch: refetchPoolAmounts } = useAdapterTokensAmounts(adapterAddress)
   const { data: pendingReward, refetch: refetchPendingReward } = useUserPendingRewardAmounts(wrapperAddress)
-  const { data: staticData } = useWrapperStaticData(wrapperAddress)
+  const { data: staticData, bCakeData: bCakeStaticData } = useWrapperStaticData(wrapperAddress, isBCakeWrapper)
   const { data: lpTokenDecimals } = useVaultStaticData(poolAmounts?.vaultAddress)
 
-  const poolAndUserAmountsReady = userAmounts && poolAmounts
-
+  const poolAndUserAmountsReady = (userAmounts || bCakeUserAmounts) && poolAmounts
+  const bCakeDataReady = bCakeStaticData && bCakeUserAmounts
+  const userLpAmounts = isBCakeWrapper ? bCakeUserAmounts?.[0] ?? BigInt(0) : userAmounts?.[0] ?? BigInt(0)
+  const resultStaticData = isBCakeWrapper ? bCakeStaticData : staticData
   return {
     pendingReward,
     poolToken0Amounts: poolAmounts?.token0Amounts ?? BigInt(0),
     poolToken1Amounts: poolAmounts?.token1Amounts ?? BigInt(0),
     userToken0Amounts: poolAndUserAmountsReady
-      ? (userAmounts[0] * poolAmounts?.token0PerShare) / poolAmounts.precision
+      ? (userLpAmounts * poolAmounts?.token0PerShare) / poolAmounts.precision
       : BigInt(0),
     userToken1Amounts: poolAndUserAmountsReady
-      ? (userAmounts[0] * poolAmounts?.token1PerShare) / poolAmounts.precision
+      ? (userLpAmounts * poolAmounts?.token1PerShare) / poolAmounts.precision
       : BigInt(0),
     userVaultPercentage: poolAndUserAmountsReady
-      ? new Percent(userAmounts[0], poolAmounts.totalSupply)
+      ? new Percent(userLpAmounts, poolAmounts.totalSupply)
       : new Percent(0, 100),
     refetchPositionInfo: () => {
-      refetchUserAmounts()
+      const refetchUser = isBCakeWrapper ? refetchBCakeUserAmounts : refetchUserAmounts
+      refetchUser()
       refetchPoolAmounts()
       refetchPendingReward()
     },
-    startTimestamp: staticData?.startTimestamp ? Number(staticData.startTimestamp) : 0,
-    endTimestamp: staticData?.endTimestamp ? Number(staticData.endTimestamp) : 0,
-    rewardPerSecond: staticData?.rewardPerSecond ?? '',
+    startTimestamp: resultStaticData?.startTimestamp ? Number(resultStaticData.startTimestamp) : 0,
+    endTimestamp: resultStaticData?.endTimestamp ? Number(resultStaticData.endTimestamp) : 0,
+    rewardPerSecond: resultStaticData?.rewardPerSecond ?? '',
     totalSupplyAmounts: poolAmounts?.totalSupply,
-    userLpAmounts: userAmounts?.[0],
+    userLpAmounts,
+    boosterMultiplier:
+      bCakeDataReady && isBCakeWrapper
+        ? Number(new BigNumber(bCakeUserAmounts?.[2].toString()).div(bCakeStaticData.boosterPrecision.toString()))
+        : 0,
     precision: poolAmounts?.precision,
-    adapterAddress: staticData?.adapterAddress,
+    adapterAddress: resultStaticData?.adapterAddress,
     vaultAddress: poolAmounts?.vaultAddress,
     managerFeePercentage: poolAmounts?.managerFeePercentage,
     managerAddress: poolAmounts?.managerAddress,
     lpTokenDecimals,
+    boosterContractAddress: bCakeStaticData?.boostContractAddress,
   }
 }
 
 export const useUserPendingRewardAmounts = (wrapperAddress: Address) => {
-  const { account } = useActiveWeb3React()
+  const { address: account } = useAccount()
   const contract = usePositionManagerWrapperContract(wrapperAddress)
-  const { data, refetch } = useQuery(
-    ['useUserPendingRewardAmounts', account, wrapperAddress],
-    () => contract.read.pendingReward([account ?? '0x']),
-    {
-      enabled: !!account,
-      refetchInterval: 3000,
-      staleTime: 3000,
-      cacheTime: 3000,
-    },
-  )
+  const { data, refetch } = useQuery({
+    queryKey: ['useUserPendingRewardAmounts', account, wrapperAddress],
+    queryFn: () => contract.read.pendingReward([account ?? '0x']),
+    enabled: !!account,
+    refetchInterval: 3000,
+    staleTime: 3000,
+    gcTime: 3000,
+  })
   return { data, refetch }
 }
 
@@ -257,5 +285,86 @@ export async function getWrapperStaticData({ address, chainId }): Promise<{
     endTimestamp: endTimestamp.toString(),
     rewardPerSecond: rewardPerSecond?.toString() ?? '',
     adapterAddress,
+  }
+}
+
+export async function getBCakeWrapperStaticData({ address, chainId }): Promise<{
+  startTimestamp: string
+  endTimestamp: string
+  rewardPerSecond: string
+  adapterAddress: Address
+  boostContractAddress: Address
+  boosterPrecision: bigint
+} | null> {
+  const [
+    startTimestampData,
+    endTimestampData,
+    rewardPerSecondData,
+    adapterAddrData,
+    boostContractData,
+    boosterPrecisionData,
+  ] = await publicClient({
+    chainId,
+  }).multicall({
+    contracts: [
+      {
+        address,
+        functionName: 'startTimestamp',
+        abi: positionManagerVeBCakeWrapperABI,
+      },
+      {
+        address,
+        functionName: 'endTimestamp',
+        abi: positionManagerVeBCakeWrapperABI,
+      },
+      {
+        address,
+        functionName: 'rewardPerSecond',
+        abi: positionManagerVeBCakeWrapperABI,
+      },
+      {
+        address,
+        functionName: 'adapterAddr',
+        abi: positionManagerVeBCakeWrapperABI,
+      },
+      {
+        address,
+        functionName: 'boostContract',
+        abi: positionManagerVeBCakeWrapperABI,
+      },
+      {
+        address,
+        functionName: 'BOOST_PRECISION',
+        abi: positionManagerVeBCakeWrapperABI,
+      },
+    ],
+  })
+
+  if (
+    !startTimestampData.result ||
+    !endTimestampData.result ||
+    !rewardPerSecondData.result ||
+    !adapterAddrData.result ||
+    !boostContractData.result ||
+    !boosterPrecisionData.result
+  )
+    return null
+
+  const [startTimestamp, endTimestamp, rewardPerSecond, adapterAddress, boostContractAddress, boosterPrecision] = [
+    startTimestampData.result,
+    endTimestampData.result,
+    rewardPerSecondData.result,
+    adapterAddrData.result,
+    boostContractData.result,
+    boosterPrecisionData.result,
+  ]
+
+  return {
+    startTimestamp: startTimestamp.toString(),
+    endTimestamp: endTimestamp.toString(),
+    rewardPerSecond: rewardPerSecond?.toString() ?? '',
+    adapterAddress,
+    boostContractAddress,
+    boosterPrecision,
   }
 }

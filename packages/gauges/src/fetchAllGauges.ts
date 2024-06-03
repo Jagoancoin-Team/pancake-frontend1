@@ -1,15 +1,20 @@
-import { ContractFunctionConfig, ContractFunctionResult, MulticallContracts, PublicClient } from 'viem'
+import { AbiStateMutability, ContractFunctionReturnType, PublicClient } from 'viem'
 import { gaugesVotingABI } from './abis/gaugesVoting'
 import { getContract } from './contract'
 import { fetchGaugesCount } from './fetchGaugesCount'
 import { getGaugeHash } from './getGaugeHash'
 import { GaugeInfo } from './types'
 
-export const fetchAllGauges = async (client: PublicClient): Promise<GaugeInfo[]> => {
+export const fetchAllGauges = async (
+  client: PublicClient,
+  options?: {
+    blockNumber?: bigint
+  },
+): Promise<GaugeInfo[]> => {
   const contract = getContract(client)
-  const counts = await fetchGaugesCount(client)
+  const counts = await fetchGaugesCount(client, options)
 
-  const multicalls: MulticallContracts<ContractFunctionConfig<typeof gaugesVotingABI, 'gauges'>[]> = []
+  const multicalls = []
 
   for (let i = 0; i < counts; i++) {
     multicalls.push({
@@ -22,7 +27,8 @@ export const fetchAllGauges = async (client: PublicClient): Promise<GaugeInfo[]>
   const response = (await client.multicall({
     contracts: multicalls,
     allowFailure: false,
-  })) as ContractFunctionResult<typeof gaugesVotingABI, 'gauges'>[]
+    ...options,
+  })) as ContractFunctionReturnType<typeof gaugesVotingABI, AbiStateMutability, 'gauges'>[]
 
   return response.reduce((prev, curr) => {
     const [pid, masterChef, chainId, pairAddress, boostMultiplier, maxVoteCap] = curr

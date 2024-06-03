@@ -1,5 +1,18 @@
 # @pancakeswap/wagmi
 
+## 3.0.1
+
+### Patch Changes
+
+- 72c834c: Upgrade viem and wagmi v2
+
+## 3.0.0
+
+### Major Changes
+
+- acc454d: Remove binance extension wallet connector @pancakeswap/wagmi
+  release new pkg @pancakeswap/universal-router-sdk & @pancakeswap/permit2-sdk
+
 ## 2.0.3
 
 ### Patch Changes

@@ -1,5 +1,7 @@
+import { ChainId } from '@pancakeswap/chains'
 import { formatBigInt } from '@pancakeswap/utils/formatBalance'
 import { erc721CollectionABI } from 'config/abi/erc721collection'
+import { nftMarketABI } from 'config/abi/nftMarket'
 import { NOT_ON_SALE_SELLER } from 'config/constants'
 import { API_NFT, GRAPH_API_NFTMARKET } from 'config/constants/endpoints'
 import { COLLECTIONS_WITH_WALLET_OF_OWNER } from 'config/constants/nftsCollections'
@@ -12,12 +14,10 @@ import range from 'lodash/range'
 import lodashSize from 'lodash/size'
 import { stringify } from 'querystring'
 import { safeGetAddress } from 'utils'
-import { Address } from 'wagmi'
 import { getNftMarketAddress } from 'utils/addressHelpers'
 import { getNftMarketContract } from 'utils/contractHelpers'
 import { publicClient } from 'utils/wagmi'
-import { ChainId } from '@pancakeswap/chains'
-import { nftMarketABI } from 'config/abi/nftMarket'
+import { Address } from 'viem'
 import { pancakeBunniesAddress } from 'views/Nft/market/constants'
 import { baseNftFields, baseTransactionFields, collectionBaseFields } from './queries'
 import {
@@ -51,7 +51,7 @@ import {
  * Fetch static data from all collections using the API
  * @returns
  */
-export const getCollectionsApi = async (): Promise<ApiCollectionsResponse> => {
+export const getCollectionsApi = async (): Promise<ApiCollectionsResponse | null> => {
   const res = await fetch(`${API_NFT}/collections`)
   if (res.ok) {
     const json = await res.json()
@@ -87,7 +87,7 @@ const fetchCollectionsTotalSupply = async (collections: ApiCollection[]): Promis
 /**
  * Fetch all collections data by combining data from the API (static metadata) and the Subgraph (dynamic market data)
  */
-export const getCollections = async (): Promise<Record<string, Collection>> => {
+export const getCollections = async (): Promise<Record<string, Collection> | null> => {
   try {
     const [collections, collectionsMarket] = await Promise.all([getCollectionsApi(), getCollectionsSg()])
     const collectionApiData: ApiCollection[] = collections?.data ?? []
@@ -124,7 +124,7 @@ export const getCollection = async (collectionAddress: string): Promise<Record<s
     ])
     let collectionsTotalSupply
     try {
-      collectionsTotalSupply = await fetchCollectionsTotalSupply([collection])
+      collectionsTotalSupply = await fetchCollectionsTotalSupply(collection ? [collection] : [])
     } catch (error) {
       console.error('on chain fetch collections total supply error', error)
     }
@@ -135,7 +135,10 @@ export const getCollection = async (collectionAddress: string): Promise<Record<s
       totalSupply: Math.max(totalSupplyFromApi, totalSupplyFromOnChain).toString(),
     }
 
-    return combineCollectionData([collectionApiDataCombinedOnChain], [collectionMarket])
+    return combineCollectionData(
+      collectionApiDataCombinedOnChain ? [collectionApiDataCombinedOnChain as ApiCollection] : [],
+      collectionMarket ? [collectionMarket] : [],
+    )
   } catch (error) {
     console.error('Unable to fetch data:', error)
     return null
@@ -146,7 +149,7 @@ export const getCollection = async (collectionAddress: string): Promise<Record<s
  * Fetch static data from a collection using the API
  * @returns
  */
-export const getCollectionApi = async (collectionAddress: string): Promise<ApiCollection> => {
+export const getCollectionApi = async (collectionAddress: string): Promise<ApiCollection | null> => {
   const res = await fetch(`${API_NFT}/collections/${collectionAddress}`)
   if (res.ok) {
     const json = await res.json()
@@ -167,7 +170,7 @@ export const getNftsFromCollectionApi = async (
   collectionAddress: string,
   size = 100,
   page = 1,
-): Promise<ApiResponseCollectionTokens> => {
+): Promise<ApiResponseCollectionTokens | null> => {
   const isPBCollection = safeGetAddress(collectionAddress) === safeGetAddress(pancakeBunniesAddress)
   const requestPath = `${API_NFT}/collections/${collectionAddress}/tokens${
     !isPBCollection ? `?page=${page}&size=${size}` : ``
@@ -203,8 +206,10 @@ export const getNftsFromCollectionApi = async (
  */
 export const getNftApi = async (
   collectionAddress: string,
-  tokenId: string,
-): Promise<ApiResponseSpecificToken['data']> => {
+  tokenId?: string,
+): Promise<ApiResponseSpecificToken['data'] | null> => {
+  if (!tokenId) return null
+
   const res = await fetch(`${API_NFT}/collections/${collectionAddress}/tokens/${tokenId}`)
   if (res.ok) {
     const json = await res.json()
@@ -221,25 +226,25 @@ export const getNftApi = async (
  * @returns Array of NFT from API
  */
 export const getNftsFromDifferentCollectionsApi = async (
-  from: { collectionAddress: string; tokenId: string }[],
+  from: Array<TokenIdWithCollectionAddress>,
 ): Promise<NftToken[]> => {
   const promises = from.map((nft) => getNftApi(nft.collectionAddress as Address, nft.tokenId))
   const responses = await Promise.all(promises)
   // Sometimes API can't find some tokens (e.g. 404 response)
   // at least return the ones that returned successfully
-  return responses
-    .filter((resp) => resp)
-    .map((res, index) => ({
-      tokenId: res.tokenId,
-      name: res.name,
-      collectionName: res.collection.name,
-      collectionAddress: from[index].collectionAddress as Address,
-      description: res.description,
-      attributes: res.attributes,
-      createdAt: res.createdAt,
-      updatedAt: res.updatedAt,
-      image: res.image,
-    }))
+
+  const filtered = responses.filter(Boolean) as ApiResponseSpecificToken['data'][]
+  return filtered.map((res, index) => ({
+    tokenId: res.tokenId,
+    name: res.name,
+    collectionName: res.collection.name,
+    collectionAddress: from[index].collectionAddress as Address,
+    description: res.description,
+    attributes: res.attributes,
+    createdAt: res.createdAt,
+    updatedAt: res.updatedAt,
+    image: res.image,
+  }))
 }
 
 /**
@@ -250,7 +255,7 @@ export const getNftsFromDifferentCollectionsApi = async (
  * Fetch market data from a collection using the Subgraph
  * @returns
  */
-export const getCollectionSg = async (collectionAddress: string): Promise<CollectionMarketDataBaseFields> => {
+export const getCollectionSg = async (collectionAddress: string): Promise<CollectionMarketDataBaseFields | null> => {
   try {
     const res = await request(
       GRAPH_API_NFTMARKET,
@@ -435,7 +440,7 @@ export const getNftsOnChainMarketData = async (
           currentAskPrice,
         }
       })
-      .filter(Boolean)
+      .filter(Boolean) as TokenMarketData[]
   } catch (error) {
     console.error('Failed to fetch NFTs onchain market data', error)
     return []
@@ -445,7 +450,7 @@ export const getNftsOnChainMarketData = async (
 export const getNftsUpdatedMarketData = async (
   collectionAddress: Address,
   tokenIds: string[],
-): Promise<{ tokenId: string; currentSeller: string; currentAskPrice: bigint; isTradable: boolean }[]> => {
+): Promise<{ tokenId: string; currentSeller: string; currentAskPrice: bigint; isTradable: boolean }[] | null> => {
   try {
     const nftMarketContract = getNftMarketContract()
     const response = await nftMarketContract.read.viewAsksByCollectionAndTokenIds([
@@ -890,7 +895,7 @@ export const getLatestListedNfts = async (first: number): Promise<TokenMarketDat
 export const fetchNftsFiltered = async (
   collectionAddress: string,
   filters: Record<string, string | number>,
-): Promise<ApiTokenFilterResponse> => {
+): Promise<ApiTokenFilterResponse | null> => {
   const res = await fetch(`${API_NFT}/collections/${collectionAddress}/filter?${stringify(filters)}`)
 
   if (res.ok) {
@@ -906,22 +911,19 @@ export const fetchNftsFiltered = async (
  * OTHER HELPERS
  */
 
-export const getMetadataWithFallback = (apiMetadata: ApiResponseCollectionTokens['data'], bunnyId: string) => {
+export const getMetadataWithFallback = (apiMetadata: ApiResponseCollectionTokens['data'], bunnyId?: string) => {
   // The fallback is just for the testnet where some bunnies don't exist
-  return (
-    apiMetadata[bunnyId] ?? {
-      name: '',
-      description: '',
-      collection: { name: 'Pancake Bunnies' },
-      image: {
-        original: '',
-        thumbnail: '',
-      },
-    }
-  )
+  return bunnyId
+    ? apiMetadata[bunnyId] ?? {
+        name: '',
+        description: '',
+        collection: { name: 'Pancake Bunnies' },
+        image: { original: '', thumbnail: '' },
+      }
+    : { name: '', description: '', collection: { name: 'Pancake Bunnies' }, image: { original: '', thumbnail: '' } }
 }
 
-export const getPancakeBunniesAttributesField = (bunnyId: string) => {
+export const getPancakeBunniesAttributesField = (bunnyId?: string) => {
   // Generating attributes field that is not returned by API
   // but can be "faked" since objects are keyed with bunny id
   return [
@@ -1007,7 +1009,7 @@ export const fetchWalletTokenIdsForCollections = async (
       acc.push({ tokenId: tokenIdBn.toString(), collectionAddress, nftLocation })
     }
     return acc
-  }, [])
+  }, [] as TokenIdWithCollectionAddress[])
 
   const walletOfOwnerCalls = Object.values(collections)
     .filter((c) => COLLECTIONS_WITH_WALLET_OF_OWNER.includes(c.address))
@@ -1041,7 +1043,7 @@ export const fetchWalletTokenIdsForCollections = async (
         acc.push(wo.map((w) => ({ tokenId: w.toString(), collectionAddress, nftLocation })))
       }
       return acc
-    }, [] as any[])
+    }, [] as any[][])
 
   return walletNfts.concat(walletNftsWithWO.flat())
 }
@@ -1138,7 +1140,7 @@ export const attachMarketDataToWalletNfts = (
       }
     )
   })
-  return walletNftsWithMarketData
+  return walletNftsWithMarketData as TokenMarketData[]
 }
 
 /**
@@ -1186,7 +1188,9 @@ const fetchWalletMarketData = async (walletNftsByCollection: {
 }): Promise<TokenMarketData[]> => {
   const walletMarketDataRequests = Object.entries(walletNftsByCollection).map(
     async ([collectionAddress, tokenIdsWithCollectionAddress]) => {
-      const tokenIdIn = tokenIdsWithCollectionAddress.map((walletNft) => walletNft.tokenId)
+      const tokenIdIn = tokenIdsWithCollectionAddress
+        .map((walletNft) => walletNft.tokenId)
+        .filter((x): x is string => x !== undefined)
       const [nftsOnChainMarketData, nftsMarketData] = await Promise.all([
         getNftsOnChainMarketData(collectionAddress as Address, tokenIdIn),
         getNftsMarketData({
@@ -1210,7 +1214,7 @@ const fetchWalletMarketData = async (walletNftsByCollection: {
     },
   )
 
-  const walletMarketDataResponses = await Promise.all(walletMarketDataRequests)
+  const walletMarketDataResponses = (await Promise.all(walletMarketDataRequests)) as TokenMarketData[][]
   return walletMarketDataResponses.flat()
 }
 
@@ -1248,16 +1252,16 @@ export const getCompleteAccountNftData = async (
   const walletNftsWithMarketData = attachMarketDataToWalletNfts(walletNftIdsWithCollectionAddress, walletMarketData)
 
   const walletTokenIds = walletNftIdsWithCollectionAddress
-    .filter((walletNft) => {
+    .filter((walletNft): walletNft is Required<TokenIdWithCollectionAddress> => {
       // Profile Pic NFT is no longer wanted in this array, hence the filter
-      return profileNftWithCollectionAddress?.tokenId !== walletNft.tokenId
+      return profileNftWithCollectionAddress?.tokenId !== walletNft.tokenId && Boolean(walletNft.tokenId)
     })
     .map((nft) => nft.tokenId)
 
   const tokenIdsForSale = onChainForSaleNfts.map((nft) => nft.tokenId)
 
   const forSaleNftIds = onChainForSaleNfts.map((nft) => {
-    return { collectionAddress: nft.collection.id, tokenId: nft.tokenId }
+    return { collectionAddress: nft.collection.id as Address, tokenId: nft.tokenId }
   })
 
   const metadataForAllNfts = await getNftsFromDifferentCollectionsApi([
@@ -1281,7 +1285,7 @@ export const getCompleteAccountNftData = async (
  * Fetch distribution information for a collection
  * @returns
  */
-export const getCollectionDistributionApi = async <T>(collectionAddress: string): Promise<T> => {
+export const getCollectionDistributionApi = async <T>(collectionAddress: string): Promise<T | null> => {
   const res = await fetch(`${API_NFT}/collections/${collectionAddress}/distribution`)
   if (res.ok) {
     const data = await res.json()

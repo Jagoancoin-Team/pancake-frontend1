@@ -25,7 +25,7 @@ import {
 import { bscTokens } from '@pancakeswap/tokens'
 import { BIG_ZERO } from '@pancakeswap/utils/bigNumber'
 import { getBalanceNumber } from '@pancakeswap/utils/formatBalance'
-import { getCurrencyUsdPrice } from '@pancakeswap/utils/getCurrencyPrice'
+import { getCurrencyUsdPrice } from '@pancakeswap/price-api-sdk'
 import { PayloadAction, createAsyncThunk, createSlice, isAnyOf } from '@reduxjs/toolkit'
 import BigNumber from 'bignumber.js'
 import keyBy from 'lodash/keyBy'
@@ -48,7 +48,7 @@ import { safeGetAddress } from 'utils'
 import { fetchTokenAplPrice, isAlpToken } from 'utils/fetchTokenAplPrice'
 import { getViemClients } from 'utils/viem'
 import { publicClient } from 'utils/wagmi'
-import { Address, erc20ABI } from 'wagmi'
+import { Address, erc20Abi } from 'viem'
 
 import fetchFarms from '../farms/fetchFarms'
 import { nativeStableLpMap } from '../farms/getFarmsPrices'
@@ -120,13 +120,13 @@ export const fetchCakePoolUserDataAsync =
     const [allowance, stakingTokenBalance] = await client.multicall({
       contracts: [
         {
-          abi: erc20ABI,
+          abi: erc20Abi,
           address: bscTokens.cake.address,
           functionName: 'allowance',
           args: [account as Address, getCakeVaultAddress(chainId)],
         },
         {
-          abi: erc20ABI,
+          abi: erc20Abi,
           address: bscTokens.cake.address,
           functionName: 'balanceOf',
           args: [account as Address],

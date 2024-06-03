@@ -1,11 +1,13 @@
-import { Currency } from '@pancakeswap/sdk'
-import { MutableRefObject, useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { useDebounce } from '@pancakeswap/hooks'
-import { Field } from 'state/swap/actions'
+import { SmartRouterTrade } from '@pancakeswap/smart-router'
+import { TradeType } from '@pancakeswap/swap-sdk-core'
 import { useQuery } from '@tanstack/react-query'
+import { UnsafeCurrency } from 'config/constants/types'
+import { MutableRefObject, useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { Field } from 'state/swap/actions'
 import { useAccount } from 'wagmi'
-import { getRFQById, MMError, sendRFQAndGetRFQId } from '../apis'
-import { MessageType, MMRfqTrade, QuoteRequest, RFQResponse } from '../types'
+import { MMError, getRFQById, sendRFQAndGetRFQId } from '../apis'
+import { MMRfqTrade, MessageType, QuoteRequest, RFQResponse } from '../types'
 import { parseMMTrade } from '../utils/exchange'
 
 export const useGetRFQId = (
@@ -13,7 +15,7 @@ export const useGetRFQId = (
   isMMBetter: boolean,
   rfqUserInputPath: MutableRefObject<string> | null | undefined,
   isRFQLive: MutableRefObject<boolean> | null | undefined,
-): { rfqId: string; refreshRFQ: () => void; rfqUserInputCache: string; isLoading: boolean } => {
+): { rfqId: string; refreshRFQ: () => void; rfqUserInputCache: string | undefined; isLoading: boolean } => {
   const { address: account } = useAccount()
 
   if (rfqUserInputPath)
@@ -29,53 +31,56 @@ export const useGetRFQId = (
         (param?.takerSideTokenAmount && param?.takerSideTokenAmount !== '0')),
   )
 
-  const { data, refetch, isLoading } = useQuery(
-    [`RFQ/${rfqUserInputPath?.current}`],
-    () => sendRFQAndGetRFQId(param as QuoteRequest),
-    {
-      refetchInterval: 20000,
-      retry: true,
-      refetchOnWindowFocus: false,
-      enabled,
-    }, // 20sec
-  )
+  const { data, refetch, isPending } = useQuery({
+    queryKey: [`RFQ/${rfqUserInputPath?.current}`],
+    queryFn: () => sendRFQAndGetRFQId(param as QuoteRequest),
+    refetchInterval: 20000,
+    retry: true,
+    refetchOnWindowFocus: false,
+    enabled,
+  })
   // eslint-disable-next-line no-param-reassign
   if (!data?.message?.rfqId && isRFQLive) isRFQLive.current = false
 
   return {
     rfqId: data?.message?.rfqId ?? '',
     refreshRFQ: refetch,
-    rfqUserInputCache: rfqUserInputPath?.current,
-    isLoading: enabled && isLoading,
+    rfqUserInputCache: rfqUserInputPath?.current || '',
+    isLoading: enabled && isPending,
   }
 }
 
 export const useGetRFQTrade = (
   rfqId: string,
   independentField: Field,
-  inputCurrency: Currency | undefined,
-  outputCurrency: Currency | undefined,
+  inputCurrency: UnsafeCurrency,
+  outputCurrency: UnsafeCurrency,
   isMMBetter: boolean,
   refreshRFQ: () => void,
   isRFQLive: MutableRefObject<boolean> | null | undefined,
-): MMRfqTrade | null => {
+): MMRfqTrade<SmartRouterTrade<TradeType>> | null => {
   const deferredRfqId = useDeferredValue(rfqId)
   const deferredIsMMBetter = useDebounce(isMMBetter, 300)
   const enabled = Boolean(deferredIsMMBetter && deferredRfqId)
-  const [{ error, data, isLoading }, setRfqState] = useState<{ error: unknown; data: RFQResponse; isLoading: boolean }>(
-    {
-      error: null,
-      data: null,
-      isLoading: false,
-    },
-  )
+  const [{ error, data, isLoading }, setRfqState] = useState<{
+    error: Error | null
+    data: RFQResponse | null | undefined
+    isLoading: boolean
+  }>({
+    error: null,
+    data: null,
+    isLoading: false,
+  })
   const {
     error: errorResponse,
     data: dataResponse,
-    isLoading: isLoadingResponse,
-  } = useQuery([`RFQ/${deferredRfqId}`], () => getRFQById(deferredRfqId), {
+    isPending: isLoadingResponse,
+  } = useQuery({
+    queryKey: [`RFQ/${deferredRfqId}`],
+    queryFn: () => getRFQById(deferredRfqId),
     enabled,
     staleTime: Infinity,
+
     retry: (failureCount, err) => {
       if (err instanceof MMError) {
         return err.shouldRetry
@@ -96,7 +101,7 @@ export const useGetRFQTrade = (
       const { data: prevData } = prevState
       return {
         error: errorResponse,
-        data: !prevState ? dataResponse : isLoadingResponse ? prevData : dataResponse,
+        data: (!prevState ? dataResponse : isLoadingResponse ? prevData : dataResponse) ?? null,
         isLoading: isLoadingResponse,
       }
     })

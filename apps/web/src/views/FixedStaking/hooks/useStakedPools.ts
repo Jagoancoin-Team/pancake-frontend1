@@ -1,31 +1,35 @@
+import { VaultKey } from '@pancakeswap/pools'
+import { getBalanceAmount } from '@pancakeswap/utils/formatBalance'
+import BigNumber from 'bignumber.js'
 import { useOfficialsAndUserAddedTokens } from 'hooks/Tokens'
 import useActiveWeb3React from 'hooks/useActiveWeb3React'
 import { useFixedStakingContract, useVaultPoolContract } from 'hooks/useContract'
-import { getAddress } from 'viem'
-import { useContractRead } from 'wagmi'
 import toNumber from 'lodash/toNumber'
 import { useMemo } from 'react'
 import { useSingleContractMultipleData } from 'state/multicall/hooks'
-import BigNumber from 'bignumber.js'
-import { VaultKey } from '@pancakeswap/pools'
 import { VaultPosition, getVaultPosition } from 'utils/cakePool'
-import { getBalanceAmount } from '@pancakeswap/utils/formatBalance'
+import { getAddress } from 'viem'
+import { useAccount } from 'wagmi'
 
-import { FixedStakingPool, StakedPosition } from '../type'
+import { useActiveChainId } from 'hooks/useActiveChainId'
+import { useReadContract } from '@pancakeswap/wagmi'
 import { DISABLED_POOLS } from '../constant'
+import { FixedStakingPool, StakedPosition } from '../type'
 
 export function useCurrentDay(): number {
   const fixedStakingContract = useFixedStakingContract()
 
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useActiveChainId()
 
-  const { data } = useContractRead({
+  const { data } = useReadContract({
     abi: fixedStakingContract.abi,
     address: fixedStakingContract.address as `0x${string}`,
     functionName: 'getCurrentDay',
-    enabled: true,
-    watch: true,
+    query: {
+      enabled: true,
+    },
     chainId,
+    watch: true,
   })
 
   return (data || 0) as number
@@ -43,13 +47,15 @@ export function useIfUserLocked() {
   const vaultPoolContract = useVaultPoolContract(VaultKey.CakeVault)
   const { account, chainId } = useActiveWeb3React()
 
-  const { data } = useContractRead({
+  const { data } = useReadContract({
     chainId,
-    abi: vaultPoolContract.abi,
-    address: vaultPoolContract.address,
+    abi: vaultPoolContract?.abi,
+    address: vaultPoolContract?.address,
     functionName: 'userInfo',
-    args: [account],
-    enabled: !!account,
+    args: [account!],
+    query: {
+      enabled: !!account,
+    },
   })
 
   return useMemo(() => {
@@ -75,7 +81,7 @@ export function useIfUserLocked() {
 }
 export function useStakedPositionsByUser(poolIndexes: number[]): StakedPosition[] {
   const fixedStakingContract = useFixedStakingContract()
-  const { account } = useActiveWeb3React()
+  const { address: account } = useAccount()
   const tokens = useOfficialsAndUserAddedTokens()
 
   const results = useSingleContractMultipleData({
@@ -138,9 +144,9 @@ export function useStakedPositionsByUser(poolIndexes: number[]): StakedPosition[
 export function useStakedPools(): FixedStakingPool[] {
   const fixedStakingContract = useFixedStakingContract()
   const tokens = useOfficialsAndUserAddedTokens()
-  const { chainId } = useActiveWeb3React()
+  const { chainId } = useActiveChainId()
 
-  const { data: poolLength } = useContractRead({
+  const { data: poolLength } = useReadContract({
     abi: fixedStakingContract.abi,
     address: fixedStakingContract.address as `0x${string}`,
     functionName: 'poolLength',
@@ -167,7 +173,7 @@ export function useStakedPools(): FixedStakingPool[] {
 
     return fixedStakePools
       .map(({ result: fixedStakePool }, index) => {
-        if (!fixedStakePool) return null
+        if (!fixedStakePool || !chainId) return null
 
         const token = tokens[getAddress(fixedStakePool[0])]
 
@@ -220,6 +226,6 @@ export function useStakedPools(): FixedStakingPool[] {
           minBoostAmount: fixedStakePool[13],
         }
       })
-      .filter(Boolean)
+      .filter(Boolean) as FixedStakingPool[]
   }, [chainId, fixedStakePools, tokens])
 }

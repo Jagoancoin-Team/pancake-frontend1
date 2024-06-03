@@ -1,18 +1,17 @@
-import { ReactElement, useCallback, useMemo, useState } from 'react'
+import { useTranslation } from '@pancakeswap/localization'
 import { Currency, CurrencyAmount, Pair, Percent, Price, Token } from '@pancakeswap/sdk'
 import { useModal } from '@pancakeswap/uikit'
-import { useTranslation } from '@pancakeswap/localization'
 import { useUserSlippage } from '@pancakeswap/utils/user'
+import { ReactElement, useCallback, useMemo, useState } from 'react'
 
 import { V2_ROUTER_ADDRESS } from 'config/constants/exchange'
 import { useIsTransactionUnsupported, useIsTransactionWarning } from 'hooks/Trades'
 import { useLPApr } from 'state/swap/useLPApr'
+import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
 import { isUserRejected, logError } from 'utils/sentry'
 import { transactionErrorToUserReadableMessage } from 'utils/transactionErrorToUserReadableMessage'
-import { formatCurrencyAmount } from 'utils/formatCurrencyAmount'
-import { Hash } from 'viem'
+import { Address, Hash } from 'viem'
 import { useWalletClient } from 'wagmi'
-import { SendTransactionResult } from 'wagmi/actions'
 
 import useAccountActiveChain from 'hooks/useAccountActiveChain'
 import { ApprovalState, useApproveCallback } from 'hooks/useApproveCallback'
@@ -20,17 +19,17 @@ import { PairState } from 'hooks/usePairs'
 import { Field } from 'state/mint/actions'
 import { useDerivedMintInfo, useMintActionHandlers } from 'state/mint/hooks'
 
+import { SettingsMode } from 'components/Menu/GlobalSettings/types'
+import { useAddLiquidityV2FormState } from 'state/mint/reducer'
 import { useTransactionAdder } from 'state/transactions/hooks'
 import { useGasPrice, usePairAdder } from 'state/user/hooks'
 import { calculateGasMargin } from 'utils'
 import { calculateSlippageAmount, useRouterContract } from 'utils/exchange'
 import { maxAmountSpend } from 'utils/maxAmountSpend'
-import { SettingsMode } from 'components/Menu/GlobalSettings/types'
-import { useAddLiquidityV2FormState } from 'state/mint/reducer'
+import SettingsModal from '../../components/Menu/GlobalSettings/SettingsModal'
+import { useTransactionDeadline } from '../../hooks/useTransactionDeadline'
 import ConfirmAddLiquidityModal from './components/ConfirmAddLiquidityModal'
 import { useCurrencySelectRoute } from './useCurrencySelectRoute'
-import SettingsModal from '../../components/Menu/GlobalSettings/SettingsModal'
-import useTransactionDeadline from '../../hooks/useTransactionDeadline'
 
 export interface LP2ChildrenProps {
   error?: string
@@ -60,13 +59,13 @@ export interface LP2ChildrenProps {
   } | null
   shouldShowApprovalGroup: boolean
   showFieldAApproval: boolean
-  approveACallback: () => Promise<SendTransactionResult>
-  revokeACallback: () => Promise<SendTransactionResult>
+  approveACallback: () => Promise<{ hash: Address } | undefined>
+  revokeACallback: () => Promise<{ hash: Address } | undefined>
   currentAllowanceA: CurrencyAmount<Currency> | undefined
   approvalA: ApprovalState
   showFieldBApproval: boolean
-  approveBCallback: () => Promise<SendTransactionResult>
-  revokeBCallback: () => Promise<SendTransactionResult>
+  approveBCallback: () => Promise<{ hash: Address } | undefined>
+  revokeBCallback: () => Promise<{ hash: Address } | undefined>
   currentAllowanceB: CurrencyAmount<Currency> | undefined
   approvalB: ApprovalState
   onAdd: () => Promise<void>
@@ -83,8 +82,8 @@ export default function AddLiquidity({
   currencyB,
   children,
 }: {
-  currencyA: Currency
-  currencyB: Currency
+  currencyA?: Currency | null
+  currencyB?: Currency | null
   children: (props: LP2ChildrenProps) => ReactElement
 }) {
   const { data: walletClient } = useWalletClient()
@@ -132,7 +131,7 @@ export default function AddLiquidity({
   })
 
   // txn values
-  const deadline = useTransactionDeadline() // custom from users settings
+  const [deadline] = useTransactionDeadline() // custom from users settings
   const [allowedSlippage] = useUserSlippage() // custom from users
 
   // get the max amounts user can add

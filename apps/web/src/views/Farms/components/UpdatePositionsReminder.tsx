@@ -5,12 +5,12 @@ import { MasterChefV3, Multicall } from '@pancakeswap/v3-sdk'
 import { useActiveChainId } from 'hooks/useActiveChainId'
 import useCatchTxError from 'hooks/useCatchTxError'
 import { useMasterchefV3 } from 'hooks/useContract'
-import useTransactionDeadline from 'hooks/useTransactionDeadline'
+import { useTransactionDeadline } from 'hooks/useTransactionDeadline'
 import { useV3TokenIdsByAccount } from 'hooks/v3/useV3Positions'
 import { useMemo, useState } from 'react'
 import { useFarmsV3Public } from 'state/farmsV3/hooks'
-import { encodeFunctionData } from 'viem'
-import { useAccount, useContractReads, useSendTransaction } from 'wagmi'
+import { Hex, encodeFunctionData } from 'viem'
+import { useAccount, useReadContracts, useSendTransaction } from 'wagmi'
 
 const lmPoolABI = [
   {
@@ -69,7 +69,7 @@ export function UpdatePositionsReminder_() {
   const masterchefV3 = useMasterchefV3()
   const { tokenIds: stakedTokenIds, loading } = useV3TokenIdsByAccount(masterchefV3?.address, account)
 
-  const stakedUserInfos = useContractReads({
+  const stakedUserInfos = useReadContracts({
     contracts: useMemo(
       () =>
         stakedTokenIds.map((tokenId) => ({
@@ -81,8 +81,10 @@ export function UpdatePositionsReminder_() {
         })),
       [chainId, masterchefV3, stakedTokenIds],
     ),
-    cacheTime: 0,
-    enabled: Boolean(!loading && stakedTokenIds.length > 0 && masterchefV3),
+    query: {
+      staleTime: Infinity,
+      enabled: Boolean(!loading && stakedTokenIds.length > 0 && masterchefV3),
+    },
   })
 
   const isOverRewardGrowthGlobalUserInfos = stakedUserInfos?.data
@@ -107,7 +109,7 @@ export function UpdatePositionsReminder_() {
     })
 
   // getting it on client side to final confirm
-  const { data: rewardGrowthGlobalX128s, isLoading } = useContractReads({
+  const { data: rewardGrowthGlobalX128s, isLoading } = useReadContracts({
     contracts: isOverRewardGrowthGlobalUserInfos?.map((userInfo) => {
       const farm = farmsV3?.farmsWithPrice.find((f) => f.pid === Number(userInfo.pid))
       return {
@@ -118,8 +120,10 @@ export function UpdatePositionsReminder_() {
         chainId,
       }
     }),
-    cacheTime: 0,
-    enabled: isOverRewardGrowthGlobalUserInfos?.length > 0,
+    query: {
+      staleTime: Infinity,
+      enabled: (isOverRewardGrowthGlobalUserInfos?.length ?? 0) > 0,
+    },
   })
 
   const needRetrigger = isOverRewardGrowthGlobalUserInfos
@@ -143,14 +147,14 @@ export function UpdatePositionsReminder_() {
   const { loading: txLoading, fetchWithCatchTxError } = useCatchTxError()
 
   const masterChefV3Address = useMasterchefV3()?.address
-  const deadline = useTransactionDeadline() // custom from users settings
+  const [deadline] = useTransactionDeadline() // custom from users settings
 
   const [triggerOnce, setTriggerOnce] = useState(false)
 
   // eslint-disable-next-line consistent-return
   const handleUpdateAll = async () => {
     if (!needRetrigger || !sendTransactionAsync) return null
-    const calldata = []
+    const calldata: (Hex | Hex[])[] = []
     needRetrigger.forEach((userInfo) => {
       if (userInfo.needReduce) {
         calldata.push(
@@ -163,7 +167,7 @@ export function UpdatePositionsReminder_() {
                 liquidity: 1n,
                 amount0Min: 0n,
                 amount1Min: 0n,
-                deadline,
+                deadline: deadline ?? 0n,
               },
             ],
           }),
@@ -171,7 +175,7 @@ export function UpdatePositionsReminder_() {
       }
       calldata.push(
         MasterChefV3.encodeHarvest({
-          to: account,
+          to: account || '0x',
           tokenId: userInfo.tokenId.toString(),
         }),
       )
@@ -179,7 +183,7 @@ export function UpdatePositionsReminder_() {
 
     const resp = await fetchWithCatchTxError(() =>
       sendTransactionAsync({
-        to: masterChefV3Address,
+        to: masterChefV3Address!,
         data: Multicall.encodeMulticall(calldata.flat()),
         value: 0n,
         account,

@@ -1,14 +1,14 @@
-import { styled } from 'styled-components'
-import { ArrowDropDownIcon, Box, Button, Text, useModal, Flex, BoxProps } from '@pancakeswap/uikit'
-import CurrencySearchModal, { CurrencySearchModalProps } from 'components/SearchModal/CurrencySearchModal'
 import { useTranslation } from '@pancakeswap/localization'
+import { ArrowDropDownIcon, Box, BoxProps, Button, Flex, Text, useModal } from '@pancakeswap/uikit'
 import { formatNumber } from '@pancakeswap/utils/formatBalance'
 import { formatAmount } from '@pancakeswap/utils/formatFractions'
+import CurrencySearchModal, { CurrencySearchModalProps } from 'components/SearchModal/CurrencySearchModal'
+import { useStablecoinPrice } from 'hooks/useStablecoinPrice'
 import { useCurrencyBalance } from 'state/wallet/hooks'
-import { useStablecoinPrice } from 'hooks/useBUSDPrice'
+import { styled } from 'styled-components'
 import { useAccount } from 'wagmi'
+import { AutoRow, RowBetween } from '../Layout/Row'
 import { CurrencyLogo } from '../Logo'
-import { RowBetween, AutoRow } from '../Layout/Row'
 
 const DropDownHeader = styled.div`
   width: 100%;
@@ -116,7 +116,7 @@ export const CurrencySelect = ({
           </AutoRow>
           <RowBetween>
             <div />
-            {Number.isFinite(+quoted?.toExact()) && (
+            {quoted && Number.isFinite(+quoted?.toExact()) && (
               <Text fontSize="12px" color="textSubtle">
                 ~${formatNumber(+quoted.toExact())}
               </Text>

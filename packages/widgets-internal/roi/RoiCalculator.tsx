@@ -1,33 +1,33 @@
-import { Currency, CurrencyAmount, Price, Token, ZERO, Percent, ZERO_PERCENT } from "@pancakeswap/sdk";
-import { FeeAmount, FeeCalculator, TickMath, sqrtRatioX96ToPrice } from "@pancakeswap/v3-sdk";
 import { useTranslation } from "@pancakeswap/localization";
-import { useCallback, useMemo, useState } from "react";
-import BigNumber from "bignumber.js";
+import { Currency, CurrencyAmount, Percent, Price, Token, ZERO } from "@pancakeswap/sdk";
 import { BIG_ZERO } from "@pancakeswap/utils/bigNumber";
+import { formatFraction, formatPercent, formatPrice } from "@pancakeswap/utils/formatFractions";
 import { isPositionOutOfRange } from "@pancakeswap/utils/isPositionOutOfRange";
-import { formatPercent, formatFraction, formatPrice } from "@pancakeswap/utils/formatFractions";
+import { FeeAmount, FeeCalculator, TickMath, sqrtRatioX96ToPrice } from "@pancakeswap/v3-sdk";
+import BigNumber from "bignumber.js";
+import { useCallback, useMemo, useState } from "react";
 
-import { Button, DynamicSection, Flex, Message, MessageText, useMatchBreakpoints } from "@pancakeswap/uikit";
+import { Button, DynamicSection, Flex, useMatchBreakpoints } from "@pancakeswap/uikit";
 
 import { ScrollableContainer } from "@pancakeswap/uikit/components/RoiCalculatorModal/RoiCalculatorModal";
-import { Section } from "./Section";
-import { DepositAmountInput } from "./DepositAmount";
-import { RangeSelector } from "./RangeSelector";
-import { StakeSpan } from "./StakeSpan";
-import { usePriceRange, useRangeHopCallbacks, useRoi, useAmountsByUsdValue } from "./hooks";
-import { CompoundFrequency } from "./CompoundFrequency";
-import { AnimatedArrow } from "./AnimationArrow";
-import { RoiRate } from "./RoiRate";
-import { Details } from "./Details";
-import { ImpermanentLossCalculator } from "./ImpermanentLossCalculator";
-import { compoundingIndexToFrequency, spanIndexToSpan } from "./constants";
-import { TickData } from "./types";
-import { TwoColumns } from "./TwoColumns";
-import { PriceChart } from "./PriceChart";
-import { PriceInvertSwitch } from "./PriceInvertSwitch";
-import { FarmingRewardsToggle } from "./FarmingRewardsToggle";
 import { LiquidityChartRangeInput } from "../swap/LiquidityChartRangeInput";
 import { useDensityChartData } from "../swap/LiquidityChartRangeInput/hooks";
+import { AnimatedArrow } from "./AnimationArrow";
+import { CompoundFrequency } from "./CompoundFrequency";
+import { DepositAmountInput } from "./DepositAmount";
+import { Details } from "./Details";
+import { FarmingRewardsToggle } from "./FarmingRewardsToggle";
+import { ImpermanentLossCalculator } from "./ImpermanentLossCalculator";
+import { PriceChart } from "./PriceChart";
+import { PriceInvertSwitch } from "./PriceInvertSwitch";
+import { RangeSelector } from "./RangeSelector";
+import { RoiRate } from "./RoiRate";
+import { Section } from "./Section";
+import { StakeSpan } from "./StakeSpan";
+import { TwoColumns } from "./TwoColumns";
+import { compoundingIndexToFrequency, spanIndexToSpan } from "./constants";
+import { useAmountsByUsdValue, usePriceRange, useRangeHopCallbacks, useRoi } from "./hooks";
+import { TickData } from "./types";
 
 export interface RoiCalculatorPositionInfo {
   priceLower?: Price<Token, Token>;
@@ -40,25 +40,27 @@ export interface RoiCalculatorPositionInfo {
   fullRange?: boolean;
 }
 
+export interface PriceCalculator {
+  pairPriceData: {
+    time: Date;
+    value: number;
+  }[];
+  maxPrice?: number;
+  minPrice?: number;
+  averagePrice?: number;
+}
+
 export type RoiCalculatorProps = {
   sqrtRatioX96?: bigint;
   liquidity?: bigint;
   independentAmount?: CurrencyAmount<Currency>;
-  currencyA?: Currency;
-  currencyB?: Currency;
+  currencyA?: Currency | null;
+  currencyB?: Currency | null;
   balanceA?: CurrencyAmount<Currency>;
   balanceB?: CurrencyAmount<Currency>;
   feeAmount?: FeeAmount;
   protocolFee?: Percent;
-  prices?: {
-    pairPriceData: {
-      time: Date;
-      value: number;
-    }[];
-    maxPrice?: number;
-    minPrice?: number;
-    averagePrice?: number;
-  };
+  prices?: PriceCalculator;
   ticks?: TickData[];
   price?: Price<Token, Token>;
   priceLower?: Price<Token, Token>;
@@ -266,25 +268,39 @@ export function RoiCalculator({
     [cakePriceDiffPercent, derivedCakeApr]
   );
 
-  const { fee, rate, apr, apy, cakeApr, cakeApy, editCakeApr, editCakeApy, cakeRate, cakeReward, originalCakeReward } =
-    useRoi({
-      amountA,
-      amountB,
-      currencyAUsdPrice,
-      currencyBUsdPrice,
-      tickLower: priceRange?.tickLower,
-      tickUpper: priceRange?.tickUpper,
-      volume24H,
-      sqrtRatioX96,
-      mostActiveLiquidity: liquidity,
-      fee: feeAmount,
-      protocolFee,
-      compoundEvery: compoundingIndexToFrequency[compoundIndex],
-      stakeFor: spanIndexToSpan[spanIndex],
-      compoundOn,
-      cakeApr: farmingRewardsEnabled && derivedCakeApr ? derivedCakeApr.toNumber() : undefined,
-      editCakeApr: farmingRewardsEnabled && editedCakeApr ? editedCakeApr.toNumber() : undefined,
-    });
+  const {
+    fee,
+
+    apr,
+    apy,
+    cakeApr,
+    cakeApy,
+    editCakeApr,
+    editCakeApy,
+
+    cakeReward,
+    originalCakeReward,
+    combinedApy,
+    combinedReward,
+    combinedRate,
+  } = useRoi({
+    amountA,
+    amountB,
+    currencyAUsdPrice,
+    currencyBUsdPrice,
+    tickLower: priceRange?.tickLower,
+    tickUpper: priceRange?.tickUpper,
+    volume24H,
+    sqrtRatioX96,
+    mostActiveLiquidity: liquidity,
+    fee: feeAmount,
+    protocolFee,
+    compoundEvery: compoundingIndexToFrequency[compoundIndex],
+    stakeFor: spanIndexToSpan[spanIndex],
+    compoundOn,
+    cakeApr: farmingRewardsEnabled && derivedCakeApr ? derivedCakeApr.toNumber() : undefined,
+    editCakeApr: farmingRewardsEnabled && editedCakeApr ? editedCakeApr.toNumber() : undefined,
+  });
 
   const handleApply = useCallback(
     () =>
@@ -301,23 +317,10 @@ export function RoiCalculator({
     [onApply, priceRange, amountA, amountB, usdValue, currencyAUsdPrice, currencyBUsdPrice]
   );
 
-  const totalRate = useMemo(
-    () => parseFloat(formatPercent(rate?.add(cakeRate || ZERO_PERCENT), 12) ?? "0"),
-    [cakeRate, rate]
-  );
+  const totalRate = useMemo(() => parseFloat(formatPercent(combinedRate, 12) ?? "0"), [combinedRate]);
   const lpReward = useMemo(() => parseFloat(formatFraction(fee, 12) ?? "0"), [fee]);
   const farmReward = cakeReward;
-  const totalReward = lpReward + farmReward;
-
-  const warningMessage = (
-    <Message variant="warning" mb="1em">
-      <MessageText>
-        {t(
-          "We are in the early stage of V3 deployment. Due to a lack of historical data, numbers and estimates may be inaccurate."
-        )}
-      </MessageText>
-    </Message>
-  );
+  const totalReward = combinedReward;
 
   const depositSection = (
     <Section title={t("Deposit Amount")}>
@@ -473,7 +476,6 @@ export function RoiCalculator({
   return (
     <>
       <ScrollableContainer>
-        {warningMessage}
         {content}
         <ImpermanentLossCalculator
           lpReward={lpReward}
@@ -508,6 +510,7 @@ export function RoiCalculator({
         farmApy={farmingRewardsEnabled ? editCakeApy || cakeApy : undefined}
         farmReward={farmReward}
         isFarm={farmingRewardsEnabled}
+        combinedApy={combinedApy}
       />
     </>
   );

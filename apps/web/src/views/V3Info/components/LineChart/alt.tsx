@@ -1,6 +1,5 @@
 import Card from 'components/Card'
 import dayjs from 'dayjs'
-import utc from 'dayjs/plugin/utc'
 import useTheme from 'hooks/useTheme'
 import { darken } from 'polished'
 import React, { Dispatch, ReactNode, SetStateAction } from 'react'
@@ -8,8 +7,6 @@ import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis } from 'recharts'
 import { styled } from 'styled-components'
 import { LoadingRows } from '../Loader'
 import { RowBetween } from '../Row'
-
-dayjs.extend(utc)
 
 const DEFAULT_HEIGHT = 300
 
@@ -102,13 +99,13 @@ const Chart = ({
             <Tooltip
               cursor={{ stroke: theme.colors.backgroundAlt2 }}
               contentStyle={{ display: 'none' }}
-              formatter={(tooltipValue, name, props) => {
+              formatter={(_tooltipValue, _name, props) => {
                 if (setValue && parsedValue !== props.payload.value) {
                   setValue(props.payload.value)
                 }
                 const formattedTime = dayjs(props.payload.time).format('MMM D, YYYY')
                 if (setLabel && label !== formattedTime) setLabel(formattedTime)
-                return null
+                return null as any
               }}
             />
             <Area dataKey="value" type="monotone" stroke={color} fill="url(#gradient)" strokeWidth={2} />

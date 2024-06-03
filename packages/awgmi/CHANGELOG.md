@@ -1,5 +1,17 @@
 # @pancakeswap/awgmi
 
+## 1.0.1
+
+### Patch Changes
+
+- 72c834c: Upgrade viem and wagmi v2
+
+## 1.0.0
+
+### Major Changes
+
+- f9a2752c9: Update react query v5
+
 ## 0.2.1
 
 ### Patch Changes

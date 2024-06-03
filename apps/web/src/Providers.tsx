@@ -1,14 +1,13 @@
 import { LanguageProvider } from '@pancakeswap/localization'
 import { ModalProvider, UIKitProvider, dark, light } from '@pancakeswap/uikit'
 import { Store } from '@reduxjs/toolkit'
-import { Hydrate, QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { HydrationBoundary, QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HistoryManagerProvider } from 'contexts/HistoryContext'
-import { fetchStatusMiddleware } from 'hooks/useSWRContract'
 import { ThemeProvider as NextThemeProvider, useTheme as useNextTheme } from 'next-themes'
+import { useMemo } from 'react'
 import { Provider } from 'react-redux'
-import { SWRConfig } from 'swr'
-import { wagmiConfig } from 'utils/wagmi'
-import { WagmiConfig } from 'wagmi'
+import { createWagmiConfig } from 'utils/wagmi'
+import { WagmiProvider } from 'wagmi'
 
 // Create a client
 const queryClient = new QueryClient()
@@ -25,30 +24,25 @@ const StyledUIKitProvider: React.FC<React.PropsWithChildren> = ({ children, ...p
 const Providers: React.FC<
   React.PropsWithChildren<{ store: Store; children: React.ReactNode; dehydratedState: any }>
 > = ({ children, store, dehydratedState }) => {
+  const wagmiConfig = useMemo(() => createWagmiConfig(), [])
   return (
-    <QueryClientProvider client={queryClient}>
-      <Hydrate state={dehydratedState}>
-        <WagmiConfig config={wagmiConfig}>
+    <WagmiProvider reconnectOnMount config={wagmiConfig}>
+      <QueryClientProvider client={queryClient}>
+        <HydrationBoundary state={dehydratedState}>
           <Provider store={store}>
             <NextThemeProvider>
               <LanguageProvider>
                 <StyledUIKitProvider>
-                  <SWRConfig
-                    value={{
-                      use: [fetchStatusMiddleware],
-                    }}
-                  >
-                    <HistoryManagerProvider>
-                      <ModalProvider>{children}</ModalProvider>
-                    </HistoryManagerProvider>
-                  </SWRConfig>
+                  <HistoryManagerProvider>
+                    <ModalProvider>{children}</ModalProvider>
+                  </HistoryManagerProvider>
                 </StyledUIKitProvider>
               </LanguageProvider>
             </NextThemeProvider>
           </Provider>
-        </WagmiConfig>
-      </Hydrate>
-    </QueryClientProvider>
+        </HydrationBoundary>
+      </QueryClientProvider>
+    </WagmiProvider>
   )
 }
 

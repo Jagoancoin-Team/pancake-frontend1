@@ -67,6 +67,38 @@ function createDatadogRumManager() {
     ddRum.setUser(...args)
   }
 
+  const setUserProperty: typeof ddRum.setUserProperty = (...args) => {
+    if (!initialized) {
+      return
+    }
+    ddRum.setUserProperty(...args)
+  }
+
+  const clearUser: typeof ddRum.clearUser = (...args) => {
+    if (!initialized) {
+      return
+    }
+    try {
+      ddRum.clearUser(...args)
+    } catch (error) {
+      //
+    }
+  }
+
+  const setGlobalContextProperty: typeof ddRum.setGlobalContextProperty = (...args) => {
+    if (!initialized) {
+      return
+    }
+    ddRum.setGlobalContextProperty(...args)
+  }
+
+  const removeGlobalContextProperty: typeof ddRum.removeGlobalContextProperty = (...args) => {
+    if (!initialized) {
+      return
+    }
+    ddRum.removeGlobalContextProperty(...args)
+  }
+
   const addFeatureFlagEvaluation: typeof ddRum.addFeatureFlagEvaluation = (...args) => {
     if (!initialized) {
       return
@@ -78,7 +110,11 @@ function createDatadogRumManager() {
     initialized,
     init,
     setUser,
+    clearUser,
+    setUserProperty,
     addFeatureFlagEvaluation,
+    setGlobalContextProperty,
+    removeGlobalContextProperty,
   }
 }
 

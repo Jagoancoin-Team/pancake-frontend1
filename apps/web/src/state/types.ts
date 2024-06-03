@@ -10,12 +10,11 @@ import {
   Team,
   TranslatableText,
 } from 'config/constants/types'
-import { parseEther } from 'viem'
-import { Address } from 'wagmi'
+import { Address, parseEther } from 'viem'
 import { NftToken } from './nftMarket/types'
 
 export enum GAS_PRICE {
-  default = '3',
+  default = '1',
   fast = '4',
   instant = '5',
   testnet = '10',
@@ -132,15 +131,15 @@ export interface DeserializedLockedCakeVault extends Omit<DeserializedCakeVault,
 
 export interface SerializedLockedCakeVault extends Omit<SerializedCakeVault, 'userData'> {
   totalLockedAmount?: SerializedBigNumber
-  userData?: SerializedLockedVaultUser
+  userData: SerializedLockedVaultUser
 }
 
 export interface SerializedCakeVault {
   totalShares?: SerializedBigNumber
   pricePerFullShare?: SerializedBigNumber
   totalCakeInVault?: SerializedBigNumber
-  fees?: SerializedVaultFees
-  userData?: SerializedVaultUser
+  fees: SerializedVaultFees
+  userData: SerializedVaultUser
 }
 
 // Ifo
@@ -448,7 +447,7 @@ export interface LotteryState {
   isTransitioning: boolean
   currentRound: LotteryResponse & { userTickets?: LotteryRoundUserTickets }
   lotteriesData?: LotteryRoundGraphEntity[]
-  userLotteryData?: LotteryUserGraphEntity
+  userLotteryData: LotteryUserGraphEntity
 }
 
 export interface LotteryRoundGraphEntity {
@@ -481,7 +480,7 @@ export interface UserRound {
 
 // Pottery
 export interface PotteryState {
-  lastVaultAddress: Address
+  lastVaultAddress: Address | null
   publicData: SerializedPotteryPublicData
   userData: SerializedPotteryUserData
   finishedRoundInfo: PotteryRoundInfo

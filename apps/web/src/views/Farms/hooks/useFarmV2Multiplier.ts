@@ -15,7 +15,7 @@ export function useFarmV2Multiplier() {
   return {
     totalMultipliers,
     getFarmCakePerSecond: useCallback(
-      (poolWeight: BigNumber) => {
+      (poolWeight?: BigNumber) => {
         const farmCakePerSecondNum =
           poolWeight && regularCakePerBlock ? poolWeight.times(regularCakePerBlock).dividedBy(BSC_BLOCK_TIME) : BIG_ZERO
 
@@ -25,6 +25,14 @@ export function useFarmV2Multiplier() {
           ? '<0.000001'
           : `~${farmCakePerSecondNum.toFixed(6)}`
         return farmCakePerSecond
+      },
+      [regularCakePerBlock],
+    ),
+    getNumberFarmCakePerSecond: useCallback(
+      (poolWeight?: BigNumber) => {
+        const farmCakePerSecondNum =
+          poolWeight && regularCakePerBlock ? poolWeight.times(regularCakePerBlock).dividedBy(BSC_BLOCK_TIME) : BIG_ZERO
+        return farmCakePerSecondNum.toNumber()
       },
       [regularCakePerBlock],
     ),

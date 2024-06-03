@@ -1,25 +1,24 @@
 import { Currency, Trade, TradeType, ZERO } from '@pancakeswap/sdk'
-import { LegacyTradeWithStableSwap as TradeWithStableSwap } from '@pancakeswap/smart-router/legacy-router'
-import { SmartRouterTrade } from '@pancakeswap/smart-router/evm'
+import { SmartRouterTrade } from '@pancakeswap/smart-router'
 import { useMemo } from 'react'
 import { Field } from 'state/swap/actions'
 
-interface Options {
+interface Options<T> {
   independentField: Field
-  trade?: TradeWithStableSwap<Currency, Currency, TradeType> | SmartRouterTrade<TradeType> | null
-  v2Trade?: Trade<Currency, Currency, TradeType> | null
+  trade?: T | null
+  v2Trade?: Pick<Trade<Currency, Currency, TradeType>, 'inputAmount' | 'outputAmount'> | null
   tradeWithMM?: SmartRouterTrade<TradeType> | null
   isMMQuotingPair?: boolean
   isExpertMode?: boolean
 }
 
-export const useIsTradeWithMMBetter = ({
+export const useIsTradeWithMMBetter = <T extends Pick<SmartRouterTrade<TradeType>, 'inputAmount' | 'outputAmount'>>({
   independentField,
   trade,
   v2Trade,
   tradeWithMM,
   isExpertMode = false,
-}: Options) => {
+}: Options<T>) => {
   return useMemo(() => {
     const isExactIn = independentField === Field.INPUT
     if (
@@ -37,8 +36,10 @@ export const useIsTradeWithMMBetter = ({
         if (tradeWithMM) return true
       }
       return (
-        (isExactIn && tradeWithMM.outputAmount.greaterThan(v2Trade?.outputAmount ?? ZERO)) || // exactIn
-        (!isExactIn && tradeWithMM.inputAmount.lessThan(v2Trade?.inputAmount ?? ZERO)) // exactOut
+        // exactIn
+        (isExactIn && tradeWithMM.outputAmount.greaterThan(v2Trade?.outputAmount ?? ZERO)) ||
+        // exactOut
+        (!isExactIn && tradeWithMM.inputAmount.lessThan(v2Trade?.inputAmount ?? ZERO))
       )
     }
     if (!v2Trade && trade) {
@@ -47,8 +48,10 @@ export const useIsTradeWithMMBetter = ({
         if (tradeWithMM) return true
       }
       return (
-        (isExactIn && tradeWithMM.outputAmount.greaterThan(trade?.outputAmount ?? ZERO)) || // exactIn
-        (!isExactIn && tradeWithMM.inputAmount.lessThan(trade?.inputAmount ?? ZERO)) // exactOut
+        // exactIn
+        (isExactIn && tradeWithMM.outputAmount.greaterThan(trade?.outputAmount ?? ZERO)) ||
+        // exactOut
+        (!isExactIn && tradeWithMM.inputAmount.lessThan(trade?.inputAmount ?? ZERO))
       )
     }
     // compare with smart router and v2 at same time

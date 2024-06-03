@@ -1,59 +1,62 @@
-import { useMemo, useRef } from 'react'
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import isEmpty from 'lodash/isEmpty'
-import { useGetCollections } from 'state/nftMarket/hooks'
-import { NftLocation, ApiCollections } from 'state/nftMarket/types'
-import { Profile } from 'state/types'
+import { useMemo } from 'react'
 import { getCompleteAccountNftData } from 'state/nftMarket/helpers'
-import useSWR from 'swr'
-import { FetchStatus } from 'config/constants/types'
-import { usePreviousValue } from '@pancakeswap/hooks'
+import { useGetCollections } from 'state/nftMarket/hooks'
+import { ApiCollections, NftLocation } from 'state/nftMarket/types'
+import { Profile } from 'state/types'
 import { safeGetAddress } from 'utils'
 import { isAddress } from 'viem'
 
-export const useNftsForAddress = (account: string, profile: Profile, isProfileFetching: boolean) => {
+interface NftsForAddressHookArgs {
+  account: string
+  profile?: Profile
+  isProfileFetching: boolean
+}
+
+export const useNftsForAddress = ({ account, profile, isProfileFetching }: NftsForAddressHookArgs) => {
   const { data: collections } = useGetCollections()
 
-  const { nfts, isLoading, refresh } = useCollectionsNftsForAddress(account, profile, isProfileFetching, collections)
+  const { nfts, isLoading, refresh } = useCollectionsNftsForAddress({
+    account,
+    profile,
+    isProfileFetching,
+    collections,
+  })
   return { nfts, isLoading, refresh }
 }
 
-export const useCollectionsNftsForAddress = (
-  account: string,
-  profile: Profile,
-  isProfileFetching: boolean,
-  collections: ApiCollections,
-) => {
-  const resetLaggyRef = useRef(null)
-  const previousAccount = usePreviousValue(account)
-
-  if (resetLaggyRef.current && previousAccount !== account) {
-    resetLaggyRef.current()
-  }
+export const useCollectionsNftsForAddress = ({
+  account,
+  profile,
+  isProfileFetching,
+  collections,
+}: NftsForAddressHookArgs & {
+  collections: ApiCollections
+}) => {
   const hasProfileNft = profile?.tokenId
   const profileNftTokenId = profile?.tokenId?.toString()
   const profileNftCollectionAddress = profile?.collectionAddress
 
   const profileNftWithCollectionAddress = useMemo(() => {
-    if (hasProfileNft) {
+    if (hasProfileNft && profileNftTokenId) {
       return {
         tokenId: profileNftTokenId,
-        collectionAddress: safeGetAddress(profileNftCollectionAddress),
+        collectionAddress: safeGetAddress(profileNftCollectionAddress)!,
         nftLocation: NftLocation.PROFILE,
       }
     }
-    return null
+    return undefined
   }, [profileNftTokenId, profileNftCollectionAddress, hasProfileNft])
 
   // @ts-ignore
-  const { status, data, mutate, resetLaggy } = useSWR(
-    !isProfileFetching && !isEmpty(collections) && isAddress(account) ? [account, 'userNfts'] : null,
-    async () => getCompleteAccountNftData(safeGetAddress(account), collections, profileNftWithCollectionAddress),
-    {
-      keepPreviousData: true,
-    },
-  )
+  const { status, data, refetch } = useQuery({
+    queryKey: [account, 'userNfts'],
+    queryFn: async () =>
+      getCompleteAccountNftData(safeGetAddress(account)!, collections, profileNftWithCollectionAddress),
+    enabled: Boolean(!isProfileFetching && !isEmpty(collections) && isAddress(account)),
+    placeholderData: keepPreviousData,
+  })
 
-  resetLaggyRef.current = resetLaggy
-
-  return { nfts: data ?? [], isLoading: status !== FetchStatus.Fetched, refresh: mutate }
+  return { nfts: data ?? [], isLoading: status !== 'success', refresh: refetch }
 }

@@ -2,19 +2,26 @@
 /* eslint-disable guard-for-in */
 /* eslint-disable no-restricted-syntax */
 /* eslint-disable import/no-unresolved */
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render as rtlRender } from '@testing-library/react'
+import Provider from 'Providers'
+import { Provider as JotaiProvider } from 'jotai'
+import { useHydrateAtoms } from 'jotai/utils'
 import noop from 'lodash/noop'
 import { RouterContext } from 'next/dist/shared/lib/router-context.shared-runtime'
 import { NextRouter } from 'next/router'
-import Provider from 'Providers'
-import { Provider as JotaiProvider } from 'jotai'
 import { initializeStore, makeStore } from 'state'
-import { SWRConfig } from 'swr'
 import { vi } from 'vitest'
-import { WagmiConfig } from 'wagmi'
-import { useHydrateAtoms } from 'jotai/utils'
-import { wagmiConfig } from 'utils/wagmi'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { WagmiProvider, createConfig } from 'wagmi'
+
+import { CHAINS } from 'config/chains'
+import { transports } from 'utils/wagmi'
+
+const wagmiConfig = createConfig({
+  chains: CHAINS,
+  syncConnectedChain: true,
+  transports,
+})
 
 const mockRouter: NextRouter = {
   basePath: '',
@@ -82,14 +89,11 @@ export const createReduxWrapper =
       </Provider>
     )
 
-export const createSWRWrapper =
-  (fallbackData = undefined) =>
-  ({ children }) =>
-    (
-      <WagmiConfig config={wagmiConfig}>
-        <SWRConfig value={{ fallback: fallbackData }}>{children}</SWRConfig>
-      </WagmiConfig>
-    )
+export const createQueryClientWrapper =
+  (queryClient) =>
+  ({ children }) => {
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  }
 
 export const createWagmiWrapper =
   () =>
@@ -97,9 +101,9 @@ export const createWagmiWrapper =
     const queryClient = new QueryClient()
 
     return (
-      <QueryClientProvider client={queryClient}>
-        <WagmiConfig config={wagmiConfig}>{children}</WagmiConfig>
-      </QueryClientProvider>
+      <WagmiProvider reconnectOnMount config={wagmiConfig}>
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      </WagmiProvider>
     )
   }
 

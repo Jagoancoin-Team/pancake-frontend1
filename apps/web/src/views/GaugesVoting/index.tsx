@@ -7,20 +7,23 @@ import {
   Flex,
   Grid,
   Heading,
-  Link,
   LinkExternal,
   PageHeader,
+  StyledLink,
   Text,
   useMatchBreakpoints,
 } from '@pancakeswap/uikit'
 import Page from 'components/Layout/Page'
+import NextLink from 'next/link'
 import { PropsWithChildren } from 'react'
 import styled from 'styled-components'
 import { CurrentEpoch } from './components/CurrentEpoch'
+import { FilterFieldByType, FilterFieldInput, FilterFieldSort } from './components/GaugesFilter'
 import { MyVeCakeBalance } from './components/MyVeCakeBalance'
 import { GaugesList, GaugesTable, VoteTable } from './components/Table'
 import { WeightsPieChart } from './components/WeightsPieChart'
 import { useGauges } from './hooks/useGauges'
+import { useGaugesQueryFilter } from './hooks/useGaugesFilter'
 import { useGaugesTotalWeight } from './hooks/useGaugesTotalWeight'
 
 const InlineLink = styled(LinkExternal)`
@@ -30,7 +33,6 @@ const InlineLink = styled(LinkExternal)`
 `
 
 const StyledGaugesVotingPage = styled.div`
-  overflow: hidden;
   background: transparent;
 
   ${({ theme }) => theme.mediaQueries.lg} {
@@ -73,22 +75,25 @@ const BunnyImage = styled.img`
 const GaugesVoting = () => {
   const { t } = useTranslation()
   const totalGaugesWeight = useGaugesTotalWeight()
+  const { isDesktop, isMobile, isXl, isXs } = useMatchBreakpoints()
   const { data: gauges, isLoading } = useGauges()
-  const { isDesktop, isMobile } = useMatchBreakpoints()
+  const { filterGauges, setSearchText, searchText, filter, setFilter, sort, setSort } = useGaugesQueryFilter(gauges)
 
   return (
     <StyledGaugesVotingPage>
       <StyledPageHeader background="transparent">
         <Flex justifyContent="space-between">
           <Flex flex="1" flexDirection="column" mr={['8px', 0]}>
-            <Link href="/cake-staking">
-              <Button p="0" variant="text">
-                <ArrowBackIcon color="primary" />
-                <Text color="primary" bold fontSize="16px" mr="4px" textTransform="uppercase">
-                  {t('cake staking')}
-                </Text>
-              </Button>
-            </Link>
+            <NextLink href="/cake-staking">
+              <StyledLink color="primary">
+                <Button p="0" variant="text">
+                  <ArrowBackIcon color="primary" />
+                  <Text color="primary" bold fontSize="16px" mr="4px" textTransform="uppercase">
+                    {t('cake staking')}
+                  </Text>
+                </Button>
+              </StyledLink>
+            </NextLink>
             <Text lineHeight="110%" bold color="secondary" mb="16px" fontSize={['32px', '32px', '64px', '64px']}>
               {t('Gauges Voting')}
             </Text>
@@ -129,20 +134,68 @@ const GaugesVoting = () => {
                 <Text color="secondary" textTransform="uppercase" bold>
                   {t('proposed weights')}
                 </Text>
-                <WeightsPieChart data={gauges} totalGaugesWeight={Number(totalGaugesWeight)} isLoading={isLoading} />
+                <Box mt={isDesktop ? '40px' : '0'} mb={isDesktop ? '20px' : 0}>
+                  <WeightsPieChart
+                    data={filterGauges}
+                    totalGaugesWeight={Number(totalGaugesWeight)}
+                    isLoading={isLoading}
+                  />
+                </Box>
               </Box>
+              {!isMobile && !isXl ? (
+                <Grid gridTemplateColumns="1fr 1fr" gridGap="32px">
+                  <FilterFieldByType onFilterChange={setFilter} value={filter} />
+                  <FilterFieldInput initialValue={searchText} placeholder={t('Search')} onChange={setSearchText} />
+                </Grid>
+              ) : null}
             </Grid>
+            {/* for tablet fit */}
+            {isXl ? (
+              <Grid gridTemplateColumns="1fr 1fr">
+                <FilterFieldByType onFilterChange={setFilter} value={filter} />
+                <FilterFieldInput initialValue={searchText} placeholder={t('Search')} onChange={setSearchText} />
+              </Grid>
+            ) : null}
+            {/* for mobile sticky, make it redundancy */}
+            {isMobile ? (
+              <Grid
+                background="background"
+                mx={-16}
+                p={16}
+                gridTemplateColumns="1fr"
+                gridGap="1em"
+                position="sticky"
+                top="0"
+              >
+                {isXs ? (
+                  <FilterFieldByType onFilterChange={setFilter} value={filter} />
+                ) : (
+                  <Grid gridTemplateColumns="2fr 1fr" gridGap="8px">
+                    <FilterFieldByType onFilterChange={setFilter} value={filter} />
+                    <FilterFieldSort onChange={setSort} />
+                  </Grid>
+                )}
+                {isXs ? (
+                  <Grid gridTemplateColumns="2fr 1fr" gridGap="8px">
+                    <FilterFieldInput placeholder={t('Search')} initialValue={searchText} onChange={setSearchText} />
+                    <FilterFieldSort onChange={setSort} />
+                  </Grid>
+                ) : (
+                  <FilterFieldInput placeholder={t('Search')} initialValue={searchText} onChange={setSearchText} />
+                )}
+              </Grid>
+            ) : null}
             {isMobile ? (
               <GaugesList
-                mt="1.5em"
-                data={gauges}
+                key={sort}
+                data={filterGauges}
                 isLoading={isLoading}
                 totalGaugesWeight={Number(totalGaugesWeight)}
               />
             ) : (
               <GaugesTable
                 mt="1.5em"
-                data={gauges}
+                data={filterGauges}
                 isLoading={isLoading}
                 totalGaugesWeight={Number(totalGaugesWeight)}
               />

@@ -25,7 +25,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useGetRoundsByCloseOracleId, useGetSortedRounds } from 'state/predictions/hooks'
 import { NodeRound } from 'state/types'
 import { styled } from 'styled-components'
-import { useContractRead, useContractReads } from 'wagmi'
+import { useReadContracts } from 'wagmi'
+import { useReadContract } from '@pancakeswap/wagmi'
 import { useConfig } from '../context/ConfigProvider'
 import { CHART_DOT_CLICK_EVENT } from '../helpers'
 import usePollOraclePrice from '../hooks/usePollOraclePrice'
@@ -34,15 +35,20 @@ import useSwiper from '../hooks/useSwiper'
 function useChainlinkLatestRound() {
   const config = useConfig()
   const { chainId } = useActiveChainId()
+
   const chainlinkOracleContract = useChainlinkOracleContract(config?.chainlinkOracleAddress)
-  return useContractRead({
+  const { data } = useReadContract({
     abi: chainlinkOracleABI,
     address: chainlinkOracleContract.address,
     functionName: 'latestRound',
-    enabled: !!chainlinkOracleContract,
-    watch: true,
+    query: {
+      enabled: !!chainlinkOracleContract,
+    },
     chainId,
+    watch: true,
   })
+
+  return data
 }
 
 function useChainlinkRoundDataSet() {
@@ -51,8 +57,8 @@ function useChainlinkRoundDataSet() {
   const config = useConfig()
   const chainlinkOracleAddress = config?.chainlinkOracleAddress
 
-  const { data, error } = useContractReads({
-    ...(lastRound?.data &&
+  const { data, error } = useReadContracts({
+    ...(lastRound &&
       chainlinkOracleAddress && {
         contracts: Array.from({ length: 50 }).map(
           (_, i) =>
@@ -61,12 +67,13 @@ function useChainlinkRoundDataSet() {
               abi: chainlinkOracleABI,
               address: chainlinkOracleAddress,
               functionName: 'getRoundData',
-              args: [(lastRound?.data ?? 0n) - BigInt(i)] as const,
+              args: [(lastRound ?? 0n) - BigInt(i)] as const,
             } as const),
         ),
       }),
-    enabled: !!lastRound.data,
-    keepPreviousData: true,
+    query: {
+      enabled: !!lastRound,
+    },
   })
 
   const computedData: ChartData[] = useMemo(() => {
@@ -94,7 +101,8 @@ type ChartData = {
 }
 
 function useChartHover() {
-  const { data } = useQuery<ChartData>(['chainlinkChartHover'], {
+  const { data } = useQuery<ChartData>({
+    queryKey: ['chainlinkChartHover'],
     enabled: false,
     refetchOnReconnect: false,
     refetchOnWindowFocus: false,
@@ -111,7 +119,7 @@ function useChartHoverMutate() {
       if (data) {
         queryClient.setQueryData(['chainlinkChartHover'], data)
       } else {
-        queryClient.resetQueries({ queryKey: ['chainlinkChartHover'], exact: true })
+        queryClient.resetQueries({ queryKey: ['chainlinkChartHover'] })
       }
     },
     [queryClient],

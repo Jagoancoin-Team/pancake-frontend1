@@ -1,9 +1,9 @@
-import BigNumber from 'bignumber.js'
 import { ChainId } from '@pancakeswap/chains'
-import { TRADING_REWARD_API } from 'config/constants/endpoints'
-import { getTradingRewardContract } from 'utils/contractHelpers'
-import { useTradingRewardContract, useTradingRewardTopTraderContract } from 'hooks/useContract'
 import { useQuery } from '@tanstack/react-query'
+import BigNumber from 'bignumber.js'
+import { TRADING_REWARD_API } from 'config/constants/endpoints'
+import { useTradingRewardContract, useTradingRewardTopTraderContract } from 'hooks/useContract'
+import { getTradingRewardContract } from 'utils/contractHelpers'
 
 export enum RewardStatus {
   ALL = '0',
@@ -12,8 +12,8 @@ export enum RewardStatus {
 }
 
 export enum RewardType {
-  CAKE_STAKERS = 'rb',
-  TOP_TRADERS = 'tt',
+  CAKE_STAKERS = 'rb', // rb -> Prod, rbTest -> test
+  TOP_TRADERS = 'tt', // tt -> Prod, ttTest -> test
 }
 
 export interface Incentives {
@@ -32,6 +32,7 @@ export interface Incentives {
 
 export interface Qualification {
   thresholdLockTime: number
+  thresholdLockAmount: number
   minAmountUSD: string
 }
 
@@ -116,7 +117,8 @@ const fetUserQualification = async (tradingRewardContract: ReturnType<typeof get
   const result = await tradingRewardContract.read.getUserQualification()
   return {
     thresholdLockTime: new BigNumber(result[0].toString()).toNumber(),
-    minAmountUSD: new BigNumber(result[0].toString()).toJSON(),
+    thresholdLockAmount: new BigNumber(result[1].toString()).toNumber(),
+    minAmountUSD: new BigNumber(result[3].toString()).toJSON(),
   } as Qualification
 }
 
@@ -138,6 +140,7 @@ const initialAllTradingRewardState = {
   campaignIdsIncentive: [],
   qualification: {
     thresholdLockTime: 0,
+    thresholdLockAmount: 0,
     minAmountUSD: '0',
   },
   rewardInfo: {},
@@ -148,9 +151,10 @@ const useAllTradingRewardPair = ({ status, type }: UseAllTradingRewardPairProps)
   const tradingRewardTopTradersContract = useTradingRewardTopTraderContract({ chainId: ChainId.BSC })
   const contract = type === RewardType.CAKE_STAKERS ? tradingRewardContract : tradingRewardTopTradersContract
 
-  const { data: allPairs, isLoading } = useQuery(
-    ['tradingReward', 'all-activated-trading-reward-pair', status, type],
-    async () => {
+  const { data: allPairs, isPending } = useQuery({
+    queryKey: ['tradingReward', 'all-activated-trading-reward-pair', status, type],
+
+    queryFn: async () => {
       try {
         const campaignsResponse = await fetch(`${TRADING_REWARD_API}/campaign/status/${status}/type/${type}`)
         const campaignsResult = await campaignsResponse.json()
@@ -175,16 +179,15 @@ const useAllTradingRewardPair = ({ status, type }: UseAllTradingRewardPairProps)
         return initialAllTradingRewardState
       }
     },
-    {
-      refetchOnWindowFocus: false,
-      refetchOnReconnect: false,
-      initialData: initialAllTradingRewardState,
-      enabled: Boolean(status && type),
-    },
-  )
+
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
+    initialData: initialAllTradingRewardState,
+    enabled: Boolean(status && type),
+  })
 
   return {
-    isFetching: isLoading,
+    isFetching: isPending,
     data: allPairs,
   }
 }

@@ -1,5 +1,25 @@
 # @pancakeswap/aptos-swap-sdk
 
+## 1.0.4
+
+### Patch Changes
+
+- Updated dependencies [610a24a]
+  - @pancakeswap/swap-sdk-core@1.1.0
+
+## 1.0.3
+
+### Patch Changes
+
+- Updated dependencies [c269d43]
+  - @pancakeswap/swap-sdk-core@1.0.1
+
+## 1.0.2
+
+### Patch Changes
+
+- f9a2752c9: Mark aptos peer to 1.x
+
 ## 1.0.1
 
 ### Patch Changes

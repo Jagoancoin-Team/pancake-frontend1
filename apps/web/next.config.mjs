@@ -1,11 +1,14 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 import BundleAnalyzer from '@next/bundle-analyzer'
 import { withWebSecurityHeaders } from '@pancakeswap/next-config/withWebSecurityHeaders'
-import smartRouterPkgs from '@pancakeswap/smart-router/package.json' assert { type: 'json' }
+import smartRouterPkgs from '@pancakeswap/smart-router/package.json' with { type: 'json' }
 import { withSentryConfig } from '@sentry/nextjs'
 import { createVanillaExtractPlugin } from '@vanilla-extract/next-plugin'
+import vercelToolbarPlugin from '@vercel/toolbar/plugins/next'
 import path from 'path'
 import { fileURLToPath } from 'url'
+
+const withVercelToolbar = vercelToolbarPlugin()
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -41,7 +44,7 @@ const workerDeps = Object.keys(smartRouterPkgs.dependencies)
 /** @type {import('next').NextConfig} */
 const config = {
   typescript: {
-    tsconfigPath: 'tsconfig.build.json',
+    tsconfigPath: 'tsconfig.json',
   },
   compiler: {
     styledComponents: true,
@@ -53,6 +56,7 @@ const config = {
     outputFileTracingExcludes: {
       '*': [],
     },
+    optimizePackageImports: ['@pancakeswap/widgets-internal', '@pancakeswap/uikit'],
   },
   transpilePackages: [
     '@pancakeswap/farms',
@@ -62,10 +66,11 @@ const config = {
     '@pancakeswap/utils',
     '@pancakeswap/widgets-internal',
     '@pancakeswap/ifos',
-    '@pancakeswap/gauges',
+    // https://github.com/TanStack/query/issues/6560#issuecomment-1975771676
+    '@tanstack/query-core',
   ],
   reactStrictMode: true,
-  swcMinify: true,
+  swcMinify: false,
   images: {
     contentDispositionType: 'attachment',
     remotePatterns: [
@@ -73,6 +78,11 @@ const config = {
         protocol: 'https',
         hostname: 'static-nft.pancakeswap.com',
         pathname: '/mainnet/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'assets.pancakeswap.finance',
+        pathname: '/web/**',
       },
     ],
   },
@@ -85,6 +95,10 @@ const config = {
       {
         source: '/info/pool/:address',
         destination: '/info/pools/:address',
+      },
+      {
+        source: '/.well-known/vercel/flags',
+        destination: '/api/vercel/flags',
       },
     ]
   },
@@ -133,11 +147,6 @@ const config = {
       {
         source: '/send',
         destination: '/swap',
-        permanent: true,
-      },
-      {
-        source: '/swap/:outputCurrency',
-        destination: '/swap?outputCurrency=:outputCurrency',
         permanent: true,
       },
       {
@@ -190,11 +199,6 @@ const config = {
         destination: 'https://tokens.pancakeswap.finance/images/:address',
         permanent: false,
       },
-      {
-        source: '/trading-reward',
-        destination: '/trading-reward/top-traders',
-        permanent: true,
-      },
     ]
   },
   webpack: (webpackConfig, { webpack, isServer }) => {
@@ -224,6 +228,6 @@ const config = {
   },
 }
 
-export default withBundleAnalyzer(
-  withVanillaExtract(withSentryConfig(withWebSecurityHeaders(config)), sentryWebpackPluginOptions),
+export default withVercelToolbar(
+  withBundleAnalyzer(withVanillaExtract(withSentryConfig(withWebSecurityHeaders(config)), sentryWebpackPluginOptions)),
 )
