@@ -96,6 +96,9 @@ const Menu = (props) => {
     return footerLinks(t)
   }, [t])
 
+
+  // console.log(`cake priiiiiiiiice`, cakePrice.toNumber());
+
   return (
     <>
       <UikitMenu
