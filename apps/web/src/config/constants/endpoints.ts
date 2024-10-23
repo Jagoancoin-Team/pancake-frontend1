@@ -89,4 +89,5 @@ export const MERCURYO_WIDGET_URL =
 
 export const WALLET_API = 'https://wallet-api.pancakeswap.com'
 
-export const CAKE_PRICE_DEXSCREENER_API_URL = 'https://api.dexscreener.com/latest/dex/pairs/bsc/0xfa4ac363c455ff9cc3348616a26f1eae258ac665'
+export const CAKE_PRICE_COINGECKO_API_URL =
+  'https://api.coingecko.com/api/v3/simple/price?ids=dynasty-coin&vs_currencies=usd'

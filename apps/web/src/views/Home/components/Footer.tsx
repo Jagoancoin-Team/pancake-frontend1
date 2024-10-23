@@ -1,92 +1,18 @@
 import { useTranslation } from '@pancakeswap/localization'
-import { Box, Flex, Text, useMatchBreakpoints } from '@pancakeswap/uikit'
-import ConnectWalletButton from 'components/ConnectWalletButton'
-import { ASSET_CDN } from 'config/constants/endpoints'
-import { keyframes, styled } from 'styled-components'
-import { useAccount } from 'wagmi'
+import {
+  Button,
+  DiscordIcon,
+  Flex,
+  Heading,
+  TelegramIcon,
+  Text,
+  TwitterIcon,
+  useMatchBreakpoints,
+} from '@pancakeswap/uikit'
+import { useWeb3React } from '@pancakeswap/wagmi'
+import Container from 'components/Layout/Container'
+import { styled } from 'styled-components'
 import SunburstSvg from './SunburstSvg'
-
-const Image = styled.img``
-
-const floatingAnim = (x: string, y: string) => keyframes`
-  from {
-    transform: translateX(0px) translateY(0px);
-  }
-  50% {
-    transform: translate(${x}) translateY(${y});
-  }
-  to {
-    transform: translateX(0px) translateY(0px);
-  }
-`
-
-const ImageWrapper = styled.div`
-  z-index: 2;
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  > * {
-    will-change: transform;
-  }
-  .pancake {
-    position: absolute;
-    width: 120px;
-    top: 20px;
-    left: -40px;
-    display: none;
-    animation: ${floatingAnim('3px', '2px')} 3s ease-in-out 1s infinite;
-    ${({ theme }) => theme.mediaQueries.sm} {
-      display: block;
-    }
-    ${({ theme }) => theme.mediaQueries.lg} {
-      left: calc(50% - 60px - 300px);
-    }
-  }
-  .rock {
-    position: absolute;
-    width: 120px;
-    top: 16px;
-    right: 5px;
-    animation: ${floatingAnim('3px', '3px')} 3s ease-in-out 0.5s infinite;
-    ${({ theme }) => theme.mediaQueries.lg} {
-      left: calc(50% - 60px + 240px);
-    }
-  }
-  .big-pancake {
-    width: 160px;
-    position: absolute;
-    bottom: 10px;
-    right: -60px;
-    animation: ${floatingAnim('8px', '6px')} 3s ease-in-out 2.5s infinite;
-    ${({ theme }) => theme.mediaQueries.lg} {
-      left: calc(50% - 80px + 270px);
-    }
-  }
-  .rock2 {
-    width: 140px;
-    position: absolute;
-    bottom: 10px;
-    left: 20px;
-    animation: ${floatingAnim('1px', '1px')} 3s ease-in-out 3.5s infinite;
-    ${({ theme }) => theme.mediaQueries.lg} {
-      left: calc(50% - 70px - 240px);
-    }
-  }
-`
-
-const ImageBox: React.FC = () => {
-  return (
-    <ImageWrapper>
-      <Image className="pancake" src={`${ASSET_CDN}/web/landing/cta-pancake.png`} alt="pancake" />
-      <Image className="rock" src={`${ASSET_CDN}/web/landing/cta-rock.png`} alt="rock" />
-      <Image className="big-pancake" src={`${ASSET_CDN}/web/landing/cta-pancake-big.png`} alt="big-pancake" />
-      <Image className="rock2" src={`${ASSET_CDN}/web/landing/cta-rock-2.png`} alt="rock2" />
-    </ImageWrapper>
-  )
-}
 
 const BgWrapper = styled.div`
   overflow: hidden;
@@ -95,57 +21,139 @@ const BgWrapper = styled.div`
   height: 100%;
   top: 0px;
   left: 0px;
-  z-index: 1;
 `
 
 const StyledSunburst = styled(SunburstSvg)`
-  height: 100%;
-  width: 100%;
-  transform: scale3d(3.5, 3.5, 1);
-  transform-origin: center center;
+  height: 350%;
+  width: 350%;
+
   ${({ theme }) => theme.mediaQueries.xl} {
-    transform: scale3d(4, 4, 1);
+    height: 400%;
+    width: 400%;
   }
 `
 
 const Wrapper = styled(Flex)`
-  width: 100%;
-  z-index: 2;
+  z-index: 1;
   position: relative;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   overflow: hidden;
-  height: 480px;
-  ${({ theme }) => theme.mediaQueries.sm} {
-    height: 560px;
-  }
-  ${({ theme }) => theme.mediaQueries.lg} {
-    height: 400px;
+`
+
+const FloatingPancakesWrapper = styled(Container)`
+  overflow: hidden;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  visibility: hidden;
+
+  ${({ theme }) => theme.mediaQueries.md} {
+    visibility: visible;
   }
 `
 
+const TopLeftImgWrapper = styled(Flex)`
+  position: absolute;
+  left: 0;
+  top: 0;
+`
+
+const BottomRightImgWrapper = styled(Flex)`
+  position: absolute;
+  right: 0;
+  bottom: 0;
+`
+
+const topLeftImage = {
+  path: '/images/home/flying-pancakes/',
+  attributes: [
+    { src: '1-bottom', alt: 'Pancake flying on the bottom' },
+    { src: '1-left', alt: 'Pancake flying on the left' },
+    { src: '1-top', alt: 'Pancake flying on the top' },
+  ],
+}
+
+const bottomRightImage = {
+  path: '/images/home/flying-pancakes/',
+  attributes: [
+    { src: '2-bottom', alt: 'Pancake flying on the bottom' },
+    { src: '2-top', alt: 'Pancake flying on the top' },
+    { src: '2-right', alt: 'Pancake flying on the right' },
+  ],
+}
+
 const Footer = () => {
   const { t } = useTranslation()
-  const { address: account } = useAccount()
-  const { isMobile } = useMatchBreakpoints()
+  const { account } = useWeb3React()
+  const { isTablet, isDesktop } = useMatchBreakpoints()
 
   return (
-    <Box>
+    <>
       <BgWrapper>
-        <Flex position="relative" zIndex={2} alignItems="center" justifyContent="center" width="100%" height="100%">
+        <Flex alignItems="center" justifyContent="center" width="100%" height="100%">
           <StyledSunburst />
         </Flex>
-        <ImageBox />
       </BgWrapper>
-
+      {/* {(isTablet || isDesktop) && ( */}
+      {/*   <FloatingPancakesWrapper> */}
+      {/*     <TopLeftImgWrapper> */}
+      {/*       <CompositeImage {...topLeftImage} maxHeight="256px" /> */}
+      {/*     </TopLeftImgWrapper> */}
+      {/*     <BottomRightImgWrapper> */}
+      {/*       <CompositeImage {...bottomRightImage} maxHeight="256px" /> */}
+      {/*     </BottomRightImgWrapper> */}
+      {/*   </FloatingPancakesWrapper> */}
+      {/* )} */}
       <Wrapper>
-        <Text mb="24px" fontWeight={600} color="#F4EEFF" textAlign="center" fontSize={isMobile ? 32 : 40}>
-          {t("Join Everyone's Favorite DEX Now!")}
+        <Heading mb="24px" scale="xl" color="white">
+          {t('Join us on social media')}
+        </Heading>
+        <Text textAlign="center" color="white" mb="24px">
+          {t("Don't miss out on the latest news and updates!")}
         </Text>
-        {!account && <ConnectWalletButton mt="24px" />}
+
+        <Flex mb="24px" style={{ gap: '12px' }}>
+          <Button
+            as="a"
+            title={t('IceCreamSwap Twitter')}
+            href="/twitter"
+            target="_blank"
+            variant="primary"
+            scale="md"
+            mr="8px"
+          >
+            <TwitterIcon color="currentColor" mr="8px" /> {t('Twitter')}
+          </Button>
+          <Button
+            as="a"
+            title={t('IceCreamSwap Telegram')}
+            href="/telegram"
+            target="_blank"
+            variant="primary"
+            scale="md"
+            mr="8px"
+          >
+            <TelegramIcon color="currentColor" mr="8px" /> {t('Telegram')}
+          </Button>
+          <Button
+            as="a"
+            title={t('IceCreamSwap Discord')}
+            href="/discord"
+            target="_blank"
+            variant="primary"
+            scale="md"
+            mr="8px"
+          >
+            <DiscordIcon color="currentColor" mr="8px" /> {t('Discord')}
+          </Button>
+        </Flex>
       </Wrapper>
-    </Box>
+    </>
   )
 }
 

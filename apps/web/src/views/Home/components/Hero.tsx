@@ -1,13 +1,14 @@
 import { useTranslation } from '@pancakeswap/localization'
 import { Button, Flex, Text, useMatchBreakpoints } from '@pancakeswap/uikit'
 import { NextLinkFromReactRouter } from '@pancakeswap/widgets-internal'
-
 import ConnectWalletButton from 'components/ConnectWalletButton'
 import { ASSET_CDN } from 'config/constants/endpoints'
 import useTheme from 'hooks/useTheme'
+import Image from 'next/image'
 import { useLayoutEffect, useRef } from 'react'
-import { styled } from 'styled-components'
+import { keyframes, styled } from 'styled-components'
 import { useAccount } from 'wagmi'
+import hero from '../../../../public/images/hero.png'
 import { useDrawCanvas } from '../hooks/useDrawCanvas'
 import { useDrawSequenceImages } from '../hooks/useDrawSequence'
 import { checkIsIOS, useIsIOS } from '../hooks/useIsIOS'
@@ -23,6 +24,18 @@ const BgWrapper = styled.div`
   left: 0px;
 `
 
+const flyingAnim = () => keyframes`
+  from {
+    transform: translate(0,  0px);
+  }
+  50% {
+    transform: translate(-5px, -5px);
+  }
+  to {
+    transform: translate(0, 0px);
+  }
+`
+
 const InnerWrapper = styled.div`
   position: absolute;
   width: 100%;
@@ -31,6 +44,9 @@ const InnerWrapper = styled.div`
 
 const BunnyWrapper = styled.div`
   width: 100%;
+  animation: ${flyingAnim} 3.5s ease-in-out infinite;
+  position: relative;
+  will-change: transform;
   > span {
     overflow: visible !important; // make sure the next-image pre-build blur image not be cropped
   }
@@ -39,6 +55,7 @@ const BunnyWrapper = styled.div`
 const CakeBox = styled.div`
   width: 300px;
   height: 300px;
+  margin-left: 40px;
   > canvas {
     transform: scale(0.33) translate(-50%, -50%);
     transform-origin: top left;
@@ -88,14 +105,6 @@ const VideoWrapper = styled.div`
 `
 
 const CakeVideo = styled.video``
-
-const CakeCanvas = styled.canvas`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background-color: transparent;
-`
 
 const StyledText = styled(Text)`
   font-size: 32px;
@@ -218,7 +227,7 @@ const Hero = () => {
         <Flex flex="1" flexDirection="column">
           <Text textAlign={isMobile || isMd ? 'center' : 'left'} pr={isMobile ? 0 : '10px'} mb="16px">
             <StyledText display="inline-block" lineHeight="110%" fontWeight={600} color="text" mr="8px">
-              {t('Everyone')}
+              {t('Blockchain')}
             </StyledText>
             <StyledText
               display="inline-block"
@@ -227,11 +236,11 @@ const Hero = () => {
               color="secondary"
               mr={isMobile ? 0 : '8px'}
             >
-              {t('Loves')}
+              {t('From')}
             </StyledText>
             {isMobile && <br />}
             <StyledText display="inline-block" lineHeight="110%" fontWeight={600} color="text">
-              {t('Pixels')}
+              {t('Empire')}
             </StyledText>
           </Text>
           <Text
@@ -243,7 +252,9 @@ const Hero = () => {
             lineHeight="110%"
             fontWeight={600}
           >
-            {t('Trade, earn, and own crypto on the all-in-one multichain DEX')}
+            {t(
+              'Dynasty Coin is a blockchain ecosystem aiming to connect kingdoms worldwide with innovative blockchain technology',
+            )}
           </Text>
 
           <Flex justifyContent={isMobile || isMd ? 'center' : 'start'}>
@@ -268,11 +279,13 @@ const Hero = () => {
         >
           <BunnyWrapper>
             <CakeBox>
-              <CakeCanvas
-                className={isIOS || isMobile ? 'is-ios' : undefined}
-                width={isIOS || isMobile ? 500 : width}
-                height={isIOS || isMobile ? 500 : height}
-                ref={canvasRef}
+              <Image
+                sizes="(max-width: 768px) 95vw, 580px"
+                src={hero}
+                priority
+                objectFit="fill"
+                placeholder="blur"
+                alt={t('Dynasty Store')}
               />
               {!(isIOS || isMobile) && (
                 <VideoWrapper>

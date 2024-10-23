@@ -4,9 +4,9 @@ import { ASSET_CDN } from './endpoints'
 import { PageMeta } from './types'
 
 export const DEFAULT_META: PageMeta = {
-  title: 'PixelSwap',
-  description: 'Trade, Pixels yay!!',
-  image: `/images/pixel/logo.png`,
+  title: 'Dynastyswap',
+  description: 'Trade, Dynasty yay!!',
+  image: `/images/pixel/dynasty.gif`,
 }
 
 interface PathList {
@@ -57,7 +57,7 @@ const getPathList = (t: ContextApi['t']): PathList => {
       '/pancake-squad': { basePath: true, title: t('Pancake Squad') },
       '/pottery': { basePath: true, title: t('Pottery'), image: `${ASSET_CDN}/web/og/pottery.jpg` },
     },
-    defaultTitleSuffix: 'Pixelswap',
+    defaultTitleSuffix: 'Dynastyswap',
   }
 }
 
